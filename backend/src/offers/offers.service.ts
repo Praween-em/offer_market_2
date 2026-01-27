@@ -3,12 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOfferDto } from './dto/create-offer.dto'; // Assuming this DTO exists
 import { NotificationsService } from '../notifications/notifications.service';
+import { CategoriesService } from '../categories/categories.service';
 
 @Injectable()
 export class OffersService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private categoriesService: CategoriesService,
   ) { }
 
   async createCampaign(userId: string, createCampaignDto: any) {
@@ -89,7 +91,28 @@ export class OffersService {
           },
         });
 
-        // 5. Create Media for the offer (support multiple images)
+        // 5. Link to Category (Smart Tagging)
+        if (item.rules.categoryId) {
+          await tx.offer_categories.create({
+            data: {
+              offer_id: offer.id,
+              category_id: item.rules.categoryId,
+            },
+          });
+        }
+
+        // 6. Create Item details for advanced search
+        await tx.offer_items.create({
+          data: {
+            offer_id: offer.id,
+            item_name: item.name,
+            brand: item.rules.company || null,
+            item_category: item.rules.categoryName || null,
+            min_price: item.rules.original_price ? parseFloat(item.rules.original_price) : null,
+          }
+        });
+
+        // 7. Create Media for the offer (support multiple images)
         const imagesToUpload = item.images || [item.image1, item.image2].filter(Boolean);
 
         for (let i = 0; i < imagesToUpload.length; i++) {
@@ -187,21 +210,65 @@ export class OffersService {
   }
 
   /**
-   * High-performance feed using Cursor Pagination
-   * @param cursor The ID of the last item seen (for infinite scroll)
-   * @param limit Number of items to fetch
+   * High-performance feed using Cursor Pagination & Smart Filtering
    */
-  async getFeed(cursor?: string, limit = 20) {
-    // 1. Build Query Options
+  async getFeed(params: {
+    cursor?: string;
+    limit?: number;
+    categoryId?: string;
+    offerType?: string;
+    search?: string;
+  }) {
+    const { cursor, limit = 20, categoryId, offerType, search } = params;
+
+    // 1. Build Multi-dimensional Build Where Clause
+    const where: any = {
+      status: 'active',
+      start_date: { lte: new Date() },
+      end_date: { gte: new Date() },
+    };
+
+    // Category Hierarchy Filtering (Smart Tagging)
+    if (categoryId) {
+      const descendantIds = this.categoriesService.getAllDescendantIds(categoryId);
+      where.offer_categories = {
+        some: {
+          category_id: { in: descendantIds }
+        }
+      };
+    }
+
+    // Offer Type Filtering
+    if (offerType) {
+      where.offer_rules = {
+        some: {
+          rule_type: offerType
+        }
+      };
+    }
+
+    // Global Search across items, brands, and titles
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        {
+          offer_items: {
+            some: {
+              OR: [
+                { item_name: { contains: search, mode: 'insensitive' } },
+                { brand: { contains: search, mode: 'insensitive' } }
+              ]
+            }
+          }
+        }
+      ];
+    }
+
     const queryOptions: any = {
       take: limit,
-      where: {
-        status: 'active',
-        start_date: { lte: new Date() },
-        end_date: { gte: new Date() },
-      },
+      where,
       orderBy: {
-        created_at: 'desc', // Recent offers first
+        created_at: 'desc',
       },
       include: {
         business_branches: {
@@ -217,8 +284,14 @@ export class OffersService {
           },
         },
         offer_media: {
-          take: 1, // Only need the thumbnail
+          take: 1,
           orderBy: { sort_order: 'asc' }
+        },
+        offer_rules: {
+          select: {
+            rule_type: true,
+            discount_value: true,
+          }
         }
       },
     };

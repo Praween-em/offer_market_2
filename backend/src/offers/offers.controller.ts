@@ -8,8 +8,13 @@ export class OffersController {
   constructor(private readonly offersService: OffersService) { }
 
   @Get('feed')
-  getFeed(@Query('cursor') cursor?: string) {
-    return this.offersService.getFeed(cursor);
+  getFeed(
+    @Query('cursor') cursor?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('offerType') offerType?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.offersService.getFeed({ cursor, categoryId, offerType, search });
   }
 
   @Get('hot-deals')

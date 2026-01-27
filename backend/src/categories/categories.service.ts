@@ -75,4 +75,24 @@ export class CategoriesService implements OnModuleInit {
 
     return roots;
   }
+
+  /**
+   * Returns an array of IDs for a parent category and all its children.
+   * Useful for filtering by a parent category (e.g., Appliances) and showing sub-cat deals.
+   */
+  getAllDescendantIds(parentId: string): string[] {
+    const ids: string[] = [parentId];
+
+    const findChildren = (pid: string) => {
+      this.categoriesCache
+        .filter((c) => c.parent_id === pid)
+        .forEach((child) => {
+          ids.push(child.id);
+          findChildren(child.id);
+        });
+    };
+
+    findChildren(parentId);
+    return ids;
+  }
 }
