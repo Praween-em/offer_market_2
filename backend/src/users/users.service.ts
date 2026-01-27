@@ -19,19 +19,29 @@ export class UsersService {
                 created_at: true,
                 _count: {
                     select: {
-                        user_saved_offers: true,
-                        user_followed_businesses: true,
-                        offers_offers_created_byTousers: true,
+                        user_saved_offers: {
+                            include: {
+                                offers: {
+                                    include: {
+                                        offer_media: { take: 1, orderBy: { sort_order: 'asc' } },
+                                        business_branches: { include: { businesses: true } }
+                                    }
+                                }
+                            }
+                        },
+                        user_followed_businesses: {
+                            include: {
+                                businesses: true
+                            }
+                        },
+                        businesses: {
+                            include: {
+                                business_branches: true,
+                            },
+                        },
                     },
-                },
-                businesses: {
-                    include: {
-                        business_branches: true,
-                    },
-                },
-            },
-        });
-        return user;
+                });
+        return this.convertBigIntToNumber(user);
     }
 
     async followBusiness(userId: string, businessId: string) {
@@ -135,6 +145,20 @@ export class UsersService {
         });
     }
 
+    private convertBigIntToNumber(obj: any): any {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj === 'bigint') return Number(obj);
+        if (Array.isArray(obj)) return obj.map(item => this.convertBigIntToNumber(item));
+        if (typeof obj === 'object') {
+            const newObj = {};
+            for (const key in obj) {
+                newObj[key] = this.convertBigIntToNumber(obj[key]);
+            }
+            return newObj;
+        }
+        return obj;
+    }
+
     async findAllBusinesses() {
         return this.prisma.businesses.findMany({
             where: {
@@ -201,6 +225,8 @@ export class UsersService {
                 (business as any).isFollowing = business.user_followed_businesses.length > 0;
                 delete (business as any).user_followed_businesses;
             }
+
+            return this.convertBigIntToNumber(business);
         }
 
         return business;

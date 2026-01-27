@@ -292,6 +292,15 @@ export class OffersService {
             rule_type: true,
             discount_value: true,
           }
+        },
+        offer_metrics: true,
+        _count: {
+          select: {
+            offer_views: true,
+            offer_clicks: true,
+            offer_leads: true,
+            user_saved_offers: true,
+          }
         }
       },
     };
