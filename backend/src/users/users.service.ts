@@ -42,6 +42,7 @@ export class UsersService {
                         user_saved_offers: true,
                         user_followed_businesses: true,
                         businesses: true,
+                        offers_offers_created_byTousers: true,
                     }
                 }
             },
