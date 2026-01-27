@@ -17,30 +17,35 @@ export class UsersService {
                 profile_picture: true,
                 role: true,
                 created_at: true,
+                user_saved_offers: {
+                    include: {
+                        offers: {
+                            include: {
+                                offer_media: { take: 1, orderBy: { sort_order: 'asc' } },
+                                business_branches: { include: { businesses: true } }
+                            }
+                        }
+                    }
+                },
+                user_followed_businesses: {
+                    include: {
+                        businesses: true
+                    }
+                },
+                businesses: {
+                    include: {
+                        business_branches: true,
+                    },
+                },
                 _count: {
                     select: {
-                        user_saved_offers: {
-                            include: {
-                                offers: {
-                                    include: {
-                                        offer_media: { take: 1, orderBy: { sort_order: 'asc' } },
-                                        business_branches: { include: { businesses: true } }
-                                    }
-                                }
-                            }
-                        },
-                        user_followed_businesses: {
-                            include: {
-                                businesses: true
-                            }
-                        },
-                        businesses: {
-                            include: {
-                                business_branches: true,
-                            },
-                        },
-                    },
-                });
+                        user_saved_offers: true,
+                        user_followed_businesses: true,
+                        businesses: true,
+                    }
+                }
+            },
+        });
         return this.convertBigIntToNumber(user);
     }
 
