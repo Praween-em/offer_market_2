@@ -39,7 +39,6 @@ export class UsersService {
                 },
                 _count: {
                     select: {
-                        user_saved_offers: true,
                         user_followed_businesses: true,
                         businesses: true,
                         offers_offers_created_byTousers: true,
@@ -89,7 +88,7 @@ export class UsersService {
         });
     }
 
-    async updateProfile(userId: string, data: { display_name?: string; business_name?: string; whatsapp_number?: string; bio?: string; profile_picture?: string }) {
+    async updateProfile(userId: string, data: { display_name?: string; business_name?: string; whatsapp_number?: string; bio?: string; profile_picture?: string; website?: string }) {
         // 1. Update User
         const user = await this.prisma.users.update({
             where: { id: userId },
@@ -108,7 +107,8 @@ export class UsersService {
                 whatsapp_number: data.whatsapp_number,
                 bio: data.bio,
                 logo_url: data.profile_picture,
-            },
+                website: data.website,
+            } as any,
         });
 
         // Fetch updated user with business for the response

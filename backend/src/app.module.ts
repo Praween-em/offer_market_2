@@ -13,6 +13,8 @@ import { MediaModule } from './media/media.module';
 import { Msg91Module } from './msg91/msg91.module';
 import { AiModule } from './ai/ai.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AffiliateModule } from './affiliate/affiliate.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     Msg91Module,
     AiModule,
     NotificationsModule,
+    AffiliateModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -82,7 +82,7 @@ export class AuthService {
         };
     }
 
-    async onboard(userId: string, data: { ownerName: string; businessName: string; gstNumber?: string; category: any; whatsappNumber: string }) {
+    async onboard(userId: string, data: { ownerName: string; businessName: string; gstNumber?: string; category: any; whatsappNumber: string; website?: string }) {
         // 1. Update User
         const user = await this.prisma.users.update({
             where: { id: userId },
@@ -106,14 +106,16 @@ export class AuthService {
                 business_type: data.category,
                 gst_number: data.gstNumber,
                 whatsapp_number: data.whatsappNumber,
-            },
+                website: data.website,
+            } as any,
             create: {
                 owner_id: userId,
                 business_name: data.businessName,
                 business_type: data.category,
                 gst_number: data.gstNumber,
                 whatsapp_number: data.whatsappNumber,
-            },
+                website: data.website,
+            } as any,
         });
 
         // 3. Ensure central branch exists for this business
