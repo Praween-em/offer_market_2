@@ -20,5 +20,18 @@ export class AffiliateService {
         });
     }
 
+    async findAllStores() {
+        return (this.prisma as any).affiliate_stores.findMany({
+            where: { is_active: true },
+            orderBy: { display_order: 'asc' },
+        });
+    }
+
+    async findStoreById(id: string) {
+        return (this.prisma as any).affiliate_stores.findUnique({
+            where: { id },
+        });
+    }
+
     // For later: Methods to sync from Amazon/Flipkart
 }

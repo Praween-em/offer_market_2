@@ -55,6 +55,31 @@ async function bootstrap() {
         );
       `);
 
+      // Create Affiliate Stores Table
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "affiliate_stores" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "name" VARCHAR(128) NOT NULL,
+          "slug" VARCHAR(64) NOT NULL UNIQUE,
+          "description" TEXT,
+          "logo_url" TEXT,
+          "icon_name" VARCHAR(64),
+          "brand_color" VARCHAR(7),
+          "affiliate_url" TEXT NOT NULL,
+          "profit_percentage" DOUBLE PRECISION NOT NULL,
+          "cashback_percentage" DOUBLE PRECISION NOT NULL,
+          "is_active" BOOLEAN NOT NULL DEFAULT true,
+          "display_order" INTEGER NOT NULL DEFAULT 0,
+          "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "affiliate_stores_is_active_display_order_idx" 
+        ON "affiliate_stores"("is_active", "display_order");
+      `);
+
       console.log('✅ Database schema sync completed.');
     } catch (syncError) {
       console.warn('⚠️ Schema sync warning (non-fatal):', syncError.message);
