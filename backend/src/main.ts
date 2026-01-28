@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { PrismaService } from './prisma/prisma.service';
 
 // Polyfill for BigInt serialization
 (BigInt.prototype as any).toJSON = function () {
@@ -16,6 +17,49 @@ async function bootstrap() {
     console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'Missing'}`);
 
     const app = await NestFactory.create(AppModule);
+
+    // --- Forced Database Sync (Resolving production 500s) ---
+    const prisma = app.get(PrismaService);
+    console.log('Running forced database schema synchronization...');
+    try {
+      // Add missing columns
+      await prisma.$executeRawUnsafe('ALTER TABLE "businesses" ADD COLUMN IF NOT EXISTS "website" TEXT;');
+      await prisma.$executeRawUnsafe('ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "affiliate_url" TEXT;');
+
+      // Create Wallet Tables if they don't exist
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "user_wallets" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "user_id" UUID NOT NULL UNIQUE REFERENCES "users"("id") ON DELETE CASCADE,
+          "current_balance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+          "pending_balance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+          "total_earned" DECIMAL(12,2) NOT NULL DEFAULT 0,
+          "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "cashback_transactions" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "amount" DECIMAL(12,2) NOT NULL,
+          "total_profit" DECIMAL(12,2) NOT NULL,
+          "network_order_id" TEXT UNIQUE,
+          "platform" VARCHAR(64),
+          "status" TEXT NOT NULL DEFAULT 'pending',
+          "type" TEXT NOT NULL DEFAULT 'cashback',
+          "notes" TEXT,
+          "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      console.log('✅ Database schema sync completed.');
+    } catch (syncError) {
+      console.warn('⚠️ Schema sync warning (non-fatal):', syncError.message);
+    }
+    // --------------------------------------------------------
 
     // Validate that the global prefix does not block the health check at '/'
     app.setGlobalPrefix('api', {
