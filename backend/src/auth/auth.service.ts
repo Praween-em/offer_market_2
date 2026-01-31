@@ -69,6 +69,22 @@ export class AuthService {
         return this.login(phone);
     }
 
+    private async getUserWithFlags(user: any) {
+        const [serviceProvider, business] = await Promise.all([
+            this.prisma.service_providers.findUnique({ where: { user_id: user.id } }),
+            this.prisma.businesses.findFirst({ where: { owner_id: user.id } }),
+        ]);
+
+        return {
+            id: user.id,
+            phone: user.phone,
+            role: user.role,
+            display_name: user.display_name,
+            is_service_provider: !!serviceProvider,
+            is_business_owner: !!business,
+        };
+    }
+
     private async login(phone: string) {
         // 1. Check if user exists
         let user = await this.prisma.users.findUnique({
@@ -94,98 +110,117 @@ export class AuthService {
         const payload = { sub: user.id, role: user.role };
         const access_token = this.jwtService.sign(payload);
 
+        // 4. Get User with Flags
+        const userData = await this.getUserWithFlags(user);
+
         return {
             access_token,
-            user: {
-                id: user.id,
-                phone: user.phone,
-                role: user.role,
-                display_name: user.display_name,
-            },
+            user: userData,
         };
     }
 
     async onboard(userId: string, data: any) {
-        // 1. Update User
-        const user = await this.prisma.users.update({
-            where: { id: userId },
-            data: {
-                display_name: data.ownerName || data.displayName,
-                role: data.providerType ? 'service_provider' : 'business_owner',
-            },
-        });
-
-        if (data.providerType) {
-            // Service Provider Path
-            const provider = await this.prisma.service_providers.upsert({
-                where: { user_id: userId },
-                update: {
-                    display_name: data.displayName,
-                    bio: data.bio,
-                    category_id: data.categoryId,
-                    experience_years: data.experienceYears || 0,
-                    starting_price: data.startingPrice,
-                    service_area: data.serviceArea,
-                    whatsapp_number: data.whatsappNumber,
-                    phone_number: data.phoneNumber,
-                },
-                create: {
-                    user_id: userId,
-                    display_name: data.displayName,
-                    bio: data.bio,
-                    category_id: data.categoryId,
-                    experience_years: data.experienceYears || 0,
-                    starting_price: data.startingPrice,
-                    service_area: data.serviceArea,
-                    whatsapp_number: data.whatsappNumber,
-                    phone_number: data.phoneNumber,
-                    is_active: true,
+        console.log(`[AuthService] Onboarding started for user ${userId}`, data);
+        try {
+            // 1. Update User
+            const user = await this.prisma.users.update({
+                where: { id: userId },
+                data: {
+                    display_name: data.ownerName || data.displayName,
+                    role: data.providerType ? 'service_provider' : 'business_owner',
                 },
             });
-            return { success: true, user, provider };
-        } else {
-            // Business Owner Path
-            const business = await this.prisma.businesses.upsert({
-                where: {
-                    owner_id_business_name: {
-                        owner_id: userId,
-                        business_name: data.businessName,
-                    }
-                },
-                update: {
-                    business_type: data.category,
-                    gst_number: data.gstNumber,
-                    whatsapp_number: data.whatsappNumber,
-                    website: data.website,
-                } as any,
-                create: {
-                    owner_id: userId,
-                    business_name: data.businessName,
-                    business_type: data.category,
-                    gst_number: data.gstNumber,
-                    whatsapp_number: data.whatsappNumber,
-                    website: data.website,
-                } as any,
-            });
 
-            // Ensure branch exists
-            const branchCount = await this.prisma.business_branches.count({
-                where: { business_id: business.id },
-            });
-
-            if (branchCount === 0) {
-                await this.prisma.business_branches.create({
-                    data: {
-                        business_id: business.id,
-                        branch_name: 'Main Store',
-                        city: 'Default City',
-                        address_line: 'Update address in settings',
+            if (data.providerType) {
+                // Service Provider Path
+                console.log('[AuthService] Processing Service Provider onboarding');
+                const provider = await this.prisma.service_providers.upsert({
+                    where: { user_id: userId },
+                    update: {
+                        display_name: data.displayName,
+                        bio: data.bio,
+                        category_id: data.categoryId,
+                        experience_years: data.experienceYears || 0,
+                        starting_price: data.startingPrice,
+                        service_area: data.serviceArea,
+                        whatsapp_number: data.whatsappNumber,
+                        phone_number: data.phoneNumber || user.phone,
+                        is_active: true,
+                    },
+                    create: {
+                        user_id: userId,
+                        display_name: data.displayName,
+                        bio: data.bio,
+                        category_id: data.categoryId,
+                        experience_years: data.experienceYears || 0,
+                        starting_price: data.startingPrice,
+                        service_area: data.serviceArea,
+                        whatsapp_number: data.whatsappNumber,
+                        phone_number: data.phoneNumber || user.phone,
                         is_active: true,
                     },
                 });
-            }
+                const userData = await this.getUserWithFlags(user);
+                console.log('[AuthService] Onboarding Success (Individual/Provider):', userData);
+                return {
+                    success: true,
+                    user: userData,
+                    provider
+                };
+            } else {
+                // Business Owner Path
+                console.log('[AuthService] Processing Business Owner onboarding');
+                const business = await this.prisma.businesses.upsert({
+                    where: {
+                        owner_id_business_name: {
+                            owner_id: userId,
+                            business_name: data.businessName || data.displayName,
+                        }
+                    },
+                    update: {
+                        business_type: data.category || 'General',
+                        gst_number: data.gstNumber,
+                        whatsapp_number: data.whatsappNumber,
+                        website: data.website,
+                    } as any,
+                    create: {
+                        owner_id: userId,
+                        business_name: data.businessName || data.displayName,
+                        business_type: data.category || 'General',
+                        gst_number: data.gstNumber,
+                        whatsapp_number: data.whatsappNumber,
+                        website: data.website,
+                    } as any,
+                });
 
-            return { success: true, user, business };
+                // Ensure branch exists
+                const branchCount = await this.prisma.business_branches.count({
+                    where: { business_id: business.id },
+                });
+
+                if (branchCount === 0) {
+                    await this.prisma.business_branches.create({
+                        data: {
+                            business_id: business.id,
+                            branch_name: 'Main Store',
+                            city: 'Default City',
+                            address_line: 'Update address in settings',
+                            is_active: true,
+                        },
+                    });
+                }
+
+                const userData = await this.getUserWithFlags(user);
+                console.log('[AuthService] Onboarding Success (Business):', userData);
+                return {
+                    success: true,
+                    user: userData,
+                    business
+                };
+            }
+        } catch (error) {
+            console.error('[AuthService] Onboarding failed:', error);
+            throw error;
         }
     }
 
@@ -226,14 +261,10 @@ export class AuthService {
             },
         });
 
+        const userData = await this.getUserWithFlags(user);
         return {
             success: true,
-            user: {
-                id: user.id,
-                phone: user.phone,
-                role: user.role,
-                display_name: user.display_name,
-            },
+            user: userData,
             provider,
         };
     }
