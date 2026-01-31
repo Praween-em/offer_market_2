@@ -16,17 +16,17 @@ export class Msg91Service {
 
     async sendOtp(phone: string): Promise<any> {
         try {
-            this.logger.log(`Initiating OTP send for ${phone}. ID: ${this.templateId}`);
+            this.logger.log(`Initiating OTP send for ${phone}. Template ID: ${this.templateId}`);
 
-            // We use the Standard GET API for everything as it is the most reliable
-            // per our connectivity tests (Test 4 passed).
-            const url = 'https://api.msg91.com/api/v5/otp';
-
-            const response = await axios.get(url, {
-                params: {
-                    template_id: this.templateId,
-                    mobile: phone,
-                    authkey: this.authKey
+            // Using POST to control.msg91.com/api/v5/otp as recommended for v5
+            const response = await axios.post(this.baseUrl, {
+                template_id: this.templateId,
+                mobile: phone,
+                authkey: this.authKey
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'authkey': this.authKey
                 }
             });
 

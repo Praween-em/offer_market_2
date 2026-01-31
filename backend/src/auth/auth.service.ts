@@ -13,8 +13,22 @@ export class AuthService {
     ) { }
 
     async sendOtp(phone: string) {
-        // Optional: Check if phone is valid or if user is banned before sending
-        return this.msg91.sendOtp(phone);
+        console.log(`[AuthService] sendOtp requested for ${phone}`);
+        const bypassOtp = process.env.DEV_OTP_BYPASS;
+        if (bypassOtp) {
+            console.log(`[AuthService] DEV_OTP_BYPASS is enabled. Use code: ${bypassOtp}`);
+        }
+        try {
+            return await this.msg91.sendOtp(phone);
+        } catch (error) {
+            console.error(`[AuthService] MSG91 sendOtp failed:`, error.message);
+            // If bypass is on, we might want to let the user proceed to step 2 anyway?
+            if (bypassOtp) {
+                console.log(`[AuthService] Allowing step 2 because bypass is enabled despite MSG91 error.`);
+                return { message: 'OTP send simulated (Bypass enabled)', type: 'success' };
+            }
+            throw error;
+        }
     }
 
     async verifyTokenAndLogin(phone: string, token: string) {
