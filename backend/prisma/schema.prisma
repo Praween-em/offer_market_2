@@ -510,10 +510,14 @@ model offer_leads {
 model service_categories {
   id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name              String              @db.VarChar(128)
+  parent_id         String?             @db.Uuid
   icon              String?             @db.VarChar(64)
   description       String?
   is_active         Boolean             @default(true)
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  
+  parent            service_categories? @relation("service_categories_hierarchy", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sub_categories    service_categories[] @relation("service_categories_hierarchy")
   service_providers service_providers[]
 }
 

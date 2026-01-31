@@ -15,6 +15,7 @@ import { AiModule } from './ai/ai.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
 import { WalletModule } from './wallet/wallet.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -31,12 +32,13 @@ import { WalletModule } from './wallet/wallet.module';
     NotificationsModule,
     AffiliateModule,
     WalletModule,
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {
   constructor() {
-    console.log('✅ AppModule Initialized - Version: 2026-01-25-v3 (Gemini & Fixes)');
+    console.log('✅ AppModule Initialized - Version: 2026-01-31-v1 (Services Integration)');
   }
 }
