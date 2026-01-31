@@ -32,9 +32,18 @@ export class AuthService {
     }
 
     async verifyTokenAndLogin(phone: string, token: string) {
+        console.log(`[AuthService] verifyTokenAndLogin for ${phone}`);
+
+        // 0. Development Bypass
+        if (process.env.DEV_OTP_BYPASS && token === 'bypass') {
+            console.log(`[AuthService] Bypassing Token verification for ${phone} using 'bypass' token`);
+            return this.login(phone);
+        }
+
         // 1. Verify Widget Access Token with MSG91
         const isValid = await this.msg91.verifyWidgetToken(token);
         if (!isValid) {
+            console.error(`[AuthService] Invalid or expired Widget Token for ${phone}`);
             throw new BadRequestException('Invalid or expired Widget Token');
         }
 
