@@ -82,58 +82,126 @@ export class AuthService {
         };
     }
 
-    async onboard(userId: string, data: { ownerName: string; businessName: string; gstNumber?: string; category: any; whatsappNumber: string; website?: string }) {
+    async onboard(userId: string, data: any) {
         // 1. Update User
         const user = await this.prisma.users.update({
             where: { id: userId },
             data: {
-                display_name: data.ownerName,
-                role: 'business_owner',
+                display_name: data.ownerName || data.displayName,
+                role: data.providerType ? 'service_provider' : 'business_owner',
             },
         });
 
-        // 2. Create or Update Business
-        // We use upsert in case they are re-submitting or if they somehow already have a business record
-        // Note: owner_id_business_name is a unique constraint in schema.prisma
-        const business = await this.prisma.businesses.upsert({
-            where: {
-                owner_id_business_name: {
-                    owner_id: userId,
-                    business_name: data.businessName,
-                }
-            },
-            update: {
-                business_type: data.category,
-                gst_number: data.gstNumber,
-                whatsapp_number: data.whatsappNumber,
-                website: data.website,
-            } as any,
-            create: {
-                owner_id: userId,
-                business_name: data.businessName,
-                business_type: data.category,
-                gst_number: data.gstNumber,
-                whatsapp_number: data.whatsappNumber,
-                website: data.website,
-            } as any,
-        });
-
-        // 3. Ensure central branch exists for this business
-        const branchCount = await this.prisma.business_branches.count({
-            where: { business_id: business.id },
-        });
-
-        if (branchCount === 0) {
-            await this.prisma.business_branches.create({
-                data: {
-                    business_id: business.id,
-                    branch_name: 'Main Store',
-                    city: 'Default City',
-                    address_line: 'Update address in settings',
+        if (data.providerType) {
+            // Service Provider Path
+            const provider = await this.prisma.service_providers.upsert({
+                where: { user_id: userId },
+                update: {
+                    display_name: data.displayName,
+                    bio: data.bio,
+                    category_id: data.categoryId,
+                    experience_years: data.experienceYears || 0,
+                    starting_price: data.startingPrice,
+                    service_area: data.serviceArea,
+                    whatsapp_number: data.whatsappNumber,
+                    phone_number: data.phoneNumber,
+                },
+                create: {
+                    user_id: userId,
+                    display_name: data.displayName,
+                    bio: data.bio,
+                    category_id: data.categoryId,
+                    experience_years: data.experienceYears || 0,
+                    starting_price: data.startingPrice,
+                    service_area: data.serviceArea,
+                    whatsapp_number: data.whatsappNumber,
+                    phone_number: data.phoneNumber,
                     is_active: true,
                 },
             });
+            return { success: true, user, provider };
+        } else {
+            // Business Owner Path
+            const business = await this.prisma.businesses.upsert({
+                where: {
+                    owner_id_business_name: {
+                        owner_id: userId,
+                        business_name: data.businessName,
+                    }
+                },
+                update: {
+                    business_type: data.category,
+                    gst_number: data.gstNumber,
+                    whatsapp_number: data.whatsappNumber,
+                    website: data.website,
+                } as any,
+                create: {
+                    owner_id: userId,
+                    business_name: data.businessName,
+                    business_type: data.category,
+                    gst_number: data.gstNumber,
+                    whatsapp_number: data.whatsappNumber,
+                    website: data.website,
+                } as any,
+            });
+
+            // Ensure branch exists
+            const branchCount = await this.prisma.business_branches.count({
+                where: { business_id: business.id },
+            });
+
+            if (branchCount === 0) {
+                await this.prisma.business_branches.create({
+                    data: {
+                        business_id: business.id,
+                        branch_name: 'Main Store',
+                        city: 'Default City',
+                        address_line: 'Update address in settings',
+                        is_active: true,
+                    },
+                });
+            }
+
+            return { success: true, user, business };
         }
+    }
+
+    async onboardServiceProvider(userId: string, data: { displayName: string; bio?: string; categoryId: string; experienceYears?: number; startingPrice?: number; serviceArea?: string; whatsappNumber?: string; phoneNumber?: string }) {
+        // 1. Update User Role
+        const user = await this.prisma.users.update({
+            where: { id: userId },
+            data: {
+                display_name: data.displayName,
+                role: 'service_provider',
+            },
+        });
+
+        // 2. Create or Update Service Provider record
+        const provider = await this.prisma.service_providers.upsert({
+            where: { user_id: userId },
+            update: {
+                display_name: data.displayName,
+                bio: data.bio,
+                category_id: data.categoryId,
+                experience_years: data.experienceYears || 0,
+                starting_price: data.startingPrice,
+                service_area: data.serviceArea,
+                whatsapp_number: data.whatsappNumber,
+                phone_number: data.phoneNumber,
+            },
+            create: {
+                user_id: userId,
+                display_name: data.displayName,
+                bio: data.bio,
+                category_id: data.categoryId,
+                experience_years: data.experienceYears || 0,
+                starting_price: data.startingPrice,
+                service_area: data.serviceArea,
+                whatsapp_number: data.whatsappNumber,
+                phone_number: data.phoneNumber,
+                is_active: true,
+            },
+        });
 
         return {
             success: true,
@@ -143,7 +211,7 @@ export class AuthService {
                 role: user.role,
                 display_name: user.display_name,
             },
-            business,
+            provider,
         };
     }
 }

@@ -76,4 +76,63 @@ export class ServicesService {
             },
         });
     }
+
+    async findProviderByUserId(userId: string) {
+        return this.prisma.service_providers.findUnique({
+            where: { user_id: userId },
+            include: {
+                services: true,
+                service_portfolios: true,
+            },
+        });
+    }
+
+    async createService(providerId: string, data: { title: string; description?: string; price?: number; priceUnit?: string }) {
+        return this.prisma.services.create({
+            data: {
+                provider_id: providerId,
+                title: data.title,
+                description: data.description,
+                price: data.price,
+                price_unit: data.priceUnit || 'service',
+            },
+        });
+    }
+
+    async updateService(serviceId: string, data: { title?: string; description?: string; price?: number; priceUnit?: string; isActive?: boolean }) {
+        return this.prisma.services.update({
+            where: { id: serviceId },
+            data: {
+                title: data.title,
+                description: data.description,
+                price: data.price,
+                price_unit: data.priceUnit,
+                is_active: data.isActive,
+            },
+        });
+    }
+
+    async deleteService(serviceId: string) {
+        return this.prisma.services.delete({
+            where: { id: serviceId },
+        });
+    }
+
+    async addPortfolioItem(providerId: string, data: { imageUrl: string; caption?: string; displayOrder?: number }) {
+        return this.prisma.service_portfolios.create({
+            data: {
+                provider_id: providerId,
+                image_url: data.imageUrl,
+                caption: data.caption,
+                display_order: data.displayOrder || 0,
+            },
+        });
+    }
+
+    async deletePortfolioItem(itemId: string) {
+        return this.prisma.service_portfolios.delete({
+            where: { id: itemId },
+        });
+    }
 }
+
