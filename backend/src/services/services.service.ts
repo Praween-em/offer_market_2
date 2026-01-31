@@ -19,7 +19,7 @@ export class ServicesService {
         });
     }
 
-    async findAllProviders(categoryId?: string) {
+    async findAllProviders(categoryId?: string, search?: string) {
         let categoryIds: string[] | undefined;
 
         if (categoryId) {
@@ -35,7 +35,18 @@ export class ServicesService {
         }
 
         return this.prisma.service_providers.findMany({
-            where: categoryIds ? { category_id: { in: categoryIds } } : {},
+            where: {
+                AND: [
+                    categoryIds ? { category_id: { in: categoryIds } } : {},
+                    search ? {
+                        OR: [
+                            { display_name: { contains: search, mode: 'insensitive' } },
+                            { service_categories: { name: { contains: search, mode: 'insensitive' } } },
+                            { service_area: { contains: search, mode: 'insensitive' } }
+                        ]
+                    } : {}
+                ]
+            },
             include: {
                 users: {
                     select: {

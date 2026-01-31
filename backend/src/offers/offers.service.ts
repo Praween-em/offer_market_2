@@ -357,6 +357,13 @@ export class OffersService {
             discount_value: true,
           },
         },
+        offer_metrics: true,
+        _count: {
+          select: {
+            offer_views: true,
+            user_saved_offers: true,
+          }
+        }
       },
       orderBy: {
         created_at: 'desc',

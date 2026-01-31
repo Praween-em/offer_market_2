@@ -513,6 +513,7 @@ model service_categories {
   parent_id         String?             @db.Uuid
   icon              String?             @db.VarChar(64)
   description       String?
+  provider_type     String?             @db.VarChar(32) // 'individual', 'business', or null for roots
   is_active         Boolean             @default(true)
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
   

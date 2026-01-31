@@ -12,8 +12,11 @@ export class ServicesController {
     }
 
     @Get('providers')
-    findAllProviders(@Query('categoryId') categoryId?: string) {
-        return this.servicesService.findAllProviders(categoryId);
+    findAllProviders(
+        @Query('categoryId') categoryId?: string,
+        @Query('search') search?: string
+    ) {
+        return this.servicesService.findAllProviders(categoryId, search);
     }
 
     @Get('providers/:id')
