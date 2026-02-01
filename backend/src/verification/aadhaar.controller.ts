@@ -2,12 +2,12 @@ import {
     Controller,
     Post,
     UseInterceptors,
-    UploadedFile,
+    UploadedFiles,
     UseGuards,
     Req,
     BadRequestException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AadhaarService } from './aadhaar.service';
 import { UsersService } from '../users/users.service';
@@ -21,16 +21,27 @@ export class AadhaarController {
 
     @Post()
     @UseGuards(JwtAuthGuard)
-    @UseInterceptors(FileInterceptor('file'))
-    async verifyAadhaar(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
-        if (!file) {
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'aadhaar', maxCount: 1 },
+        { name: 'selfie', maxCount: 1 },
+    ]))
+    async verifyAadhaar(
+        @UploadedFiles() files: { aadhaar?: Express.Multer.File[], selfie?: Express.Multer.File[] },
+        @Req() req: any
+    ) {
+        if (!files.aadhaar || !files.aadhaar[0]) {
             throw new BadRequestException('Aadhaar image or PDF is required');
+        }
+        if (!files.selfie || !files.selfie[0]) {
+            throw new BadRequestException('Selfie is required for verification');
         }
 
         const userId = req.user.userId;
+        const aadhaarFile = files.aadhaar[0];
+        // Note: files.selfie[0] is available here for future face matching or storage
 
         // 1. Verify Aadhaar Data (Offline)
-        const verifiedData = await this.aadhaarService.verifyAadhaarQR(file.buffer);
+        const verifiedData = await this.aadhaarService.verifyAadhaarQR(aadhaarFile.buffer);
 
         // 2. Update User Profile with Verified Info
         // We only store the relevant demographic details and status
@@ -40,6 +51,7 @@ export class AadhaarController {
                 extractedName: verifiedData.name,
                 extractedDOB: verifiedData.dob,
                 extractedGender: verifiedData.gender,
+                selfieCaptured: true, // Mark that selfie was taken
             },
         });
 
