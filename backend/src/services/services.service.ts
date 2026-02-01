@@ -99,7 +99,13 @@ export class ServicesService {
         });
     }
 
-    async updateService(serviceId: string, data: { title?: string; description?: string; price?: number; priceUnit?: string; isActive?: boolean }) {
+    async updateService(serviceId: string, providerId: string, data: { title?: string; description?: string; price?: number; priceUnit?: string; isActive?: boolean }) {
+        // Verify ownership
+        const service = await this.prisma.services.findFirst({
+            where: { id: serviceId, provider_id: providerId }
+        });
+        if (!service) throw new Error('Service not found or unauthorized');
+
         return this.prisma.services.update({
             where: { id: serviceId },
             data: {
@@ -112,7 +118,13 @@ export class ServicesService {
         });
     }
 
-    async deleteService(serviceId: string) {
+    async deleteService(serviceId: string, providerId: string) {
+        // Verify ownership
+        const service = await this.prisma.services.findFirst({
+            where: { id: serviceId, provider_id: providerId }
+        });
+        if (!service) throw new Error('Service not found or unauthorized');
+
         return this.prisma.services.delete({
             where: { id: serviceId },
         });
@@ -132,6 +144,58 @@ export class ServicesService {
     async deletePortfolioItem(itemId: string) {
         return this.prisma.service_portfolios.delete({
             where: { id: itemId },
+        });
+    }
+
+    // Service Requests
+    async createServiceRequest(userId: string, data: {
+        categoryId: string;
+        title: string;
+        description?: string;
+        images?: string[];
+    }) {
+        return this.prisma.service_requests.create({
+            data: {
+                user_id: userId,
+                category_id: data.categoryId,
+                title: data.title,
+                description: data.description,
+                media: data.images ? {
+                    create: data.images.map(url => ({ image_url: url }))
+                } : undefined
+            },
+            include: {
+                media: true,
+                service_categories: true
+            }
+        });
+    }
+
+    async findAllRequests(categoryId?: string) {
+        return this.prisma.service_requests.findMany({
+            where: categoryId ? { category_id: categoryId } : {},
+            include: {
+                media: true,
+                service_categories: true,
+                users: {
+                    select: {
+                        display_name: true,
+                        profile_picture: true
+                    }
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+    }
+
+    async findRequestsByUserId(userId: string) {
+        return this.prisma.service_requests.findMany({
+            where: { user_id: userId },
+            include: {
+                media: true,
+                service_categories: true
+            },
+            orderBy: { created_at: 'desc' }
         });
     }
 }

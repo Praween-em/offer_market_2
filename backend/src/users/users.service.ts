@@ -237,4 +237,15 @@ export class UsersService {
 
         return business;
     }
+
+    async updateVerificationStatus(userId: string, data: { status: any; metadata: any }) {
+        return this.prisma.users.update({
+            where: { id: userId },
+            data: {
+                verification_status: data.status,
+                metadata: data.metadata,
+                verified_at: data.status === 'VERIFIED' ? new Date() : null,
+            },
+        });
+    }
 }

@@ -484,6 +484,9 @@ model users {
   cashback_transactions                                cashback_transactions[]
   service_providers                                    service_providers?
   service_leads                                        service_leads[]
+  service_requests                                     service_requests[]
+  verification_status                                  verification_status_enum   @default(NOT_STARTED)
+  verified_at                                          DateTime?                  @db.Timestamptz(6)
 
   @@index([role, status], map: "idx_users_role_status")
 }
@@ -520,6 +523,7 @@ model service_categories {
   parent            service_categories? @relation("service_categories_hierarchy", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sub_categories    service_categories[] @relation("service_categories_hierarchy")
   service_providers service_providers[]
+  service_requests  service_requests[]
 }
 
 model service_providers {
@@ -588,6 +592,33 @@ model service_leads {
 
   @@index([provider_id])
   @@index([user_id])
+}
+
+model service_requests {
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String                  @db.Uuid
+  category_id        String                  @db.Uuid
+  title              String                  @db.VarChar(255)
+  description        String?
+  status             String                  @default("pending") @db.VarChar(32)
+  created_at         DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                @default(now()) @db.Timestamptz(6)
+  users              users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_categories service_categories      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  media              service_request_media[]
+
+  @@index([user_id])
+  @@index([category_id])
+}
+
+model service_request_media {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_id       String           @db.Uuid
+  image_url        String
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  service_requests service_requests @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([request_id])
 }
 
 enum brand_type_enum {
@@ -689,4 +720,11 @@ enum lead_status_enum {
   new
   contacted
   converted
+}
+
+enum verification_status_enum {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
 }

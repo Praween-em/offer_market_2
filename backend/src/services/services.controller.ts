@@ -45,16 +45,18 @@ export class ServicesController {
 
     @UseGuards(JwtAuthGuard)
     @Patch('manage/:id')
-    async updateService(@Param('id') id: string, @Body() data: any) {
-        // Add ownership check in production
-        return this.servicesService.updateService(id, data);
+    async updateService(@Req() req, @Param('id') id: string, @Body() data: any) {
+        const provider = await this.servicesService.findProviderByUserId(req.user.userId);
+        if (!provider) throw new BadRequestException('Provider profile not found');
+        return this.servicesService.updateService(id, provider.id, data);
     }
 
     @UseGuards(JwtAuthGuard)
     @Delete('manage/:id')
-    async deleteService(@Param('id') id: string) {
-        // Add ownership check in production
-        return this.servicesService.deleteService(id);
+    async deleteService(@Req() req, @Param('id') id: string) {
+        const provider = await this.servicesService.findProviderByUserId(req.user.userId);
+        if (!provider) throw new BadRequestException('Provider profile not found');
+        return this.servicesService.deleteService(id, provider.id);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -70,6 +72,27 @@ export class ServicesController {
     async deletePortfolioItem(@Param('id') id: string) {
         // Add ownership check in production
         return this.servicesService.deletePortfolioItem(id);
+    }
+
+    // Service Requests
+    @UseGuards(JwtAuthGuard)
+    @Post('requests')
+    async createServiceRequest(@Req() req, @Body() data: any) {
+        if (!data.categoryId || !data.title) {
+            throw new BadRequestException('Category and Title are required');
+        }
+        return this.servicesService.createServiceRequest(req.user.userId, data);
+    }
+
+    @Get('requests')
+    async getAllRequests(@Query('categoryId') categoryId?: string) {
+        return this.servicesService.findAllRequests(categoryId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('my-requests')
+    async getMyRequests(@Req() req) {
+        return this.servicesService.findRequestsByUserId(req.user.userId);
     }
 }
 

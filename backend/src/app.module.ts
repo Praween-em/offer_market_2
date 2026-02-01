@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ServicesModule } from './services/services.module';
+import { VerificationModule } from './verification/verification.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ServicesModule } from './services/services.module';
     AffiliateModule,
     WalletModule,
     ServicesModule,
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
