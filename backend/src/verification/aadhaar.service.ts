@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-const Jimp = require('jimp');
+import { Jimp } from 'jimp';
 import jsQR from 'jsqr';
 import * as zlib from 'zlib';
 import * as crypto from 'crypto';
