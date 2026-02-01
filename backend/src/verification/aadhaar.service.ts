@@ -110,39 +110,54 @@ G5v6w7+8u4/i4f5G5v6w7+8u4/i4f5G5v6w7+8u4/i4f5G5v6w7+8u4/i4f5G5v
 
     private async extractQRFromImage(fileBuffer: Buffer): Promise<string | null> {
         const image = await Jimp.read(fileBuffer);
+        console.log(`[AadhaarService] Starting QR detection for image ${image.bitmap.width}x${image.bitmap.height}`);
 
         // Try 1: Original Image
-        let code = this.scanQR(image);
+        let code = this.scanQR(image, 'original');
         if (code) return code;
 
-        // Try 2: Greyscale
-        const greyscale = image.clone().greyscale();
-        code = this.scanQR(greyscale);
+        // Try 2: Greyscale + Normalize (Adjust contrast)
+        const greyscale = image.clone().greyscale().normalize();
+        code = this.scanQR(greyscale, 'greyscale_normalize');
         if (code) return code;
 
-        // Try 3: High Contrast
-        const highContrast = greyscale.clone().contrast(0.5);
-        code = this.scanQR(highContrast);
+        // Try 3: High Contrast + Sharpen
+        const sharpened = greyscale.clone().contrast(0.2).convolute([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]);
+        code = this.scanQR(sharpened, 'sharpened_high_contrast');
         if (code) return code;
 
-        // Try 4: Resized (Upscaled if small)
-        if (image.bitmap.width < 1000) {
-            const resized = image.clone().resize({ w: 1000 });
-            code = this.scanQR(resized);
-            if (code) return code;
-        }
+        // Try 4: Resized (Medium Upscale)
+        const resizedMed = image.clone().resize({ w: 1200 });
+        code = this.scanQR(resizedMed, 'resize_1200');
+        if (code) return code;
 
+        // Try 5: Resized (Large Upscale)
+        const resizedLarge = image.clone().resize({ w: 2000 });
+        code = this.scanQR(resizedLarge, 'resize_2000');
+        if (code) return code;
+
+        // Try 6: Greyscale + Extreme Contrast
+        const extreme = greyscale.clone().contrast(0.8);
+        code = this.scanQR(extreme, 'extreme_contrast');
+        if (code) return code;
+
+        console.error('[AadhaarService] QR code not found after all preprocessing attempts');
         return null;
     }
 
-    private scanQR(image: any): string | null {
+    private scanQR(image: any, variant: string): string | null {
         try {
             const { data, width, height } = image.bitmap;
             const code = jsQR(new Uint8ClampedArray(data), width, height, {
                 inversionAttempts: 'attemptBoth',
             });
-            return code ? code.data : null;
+            if (code) {
+                console.log(`[AadhaarService] Successfully detected QR using variant: ${variant}`);
+                return code.data;
+            }
+            return null;
         } catch (e) {
+            console.error(`[AadhaarService] Error scanning variant ${variant}:`, e);
             return null;
         }
     }
