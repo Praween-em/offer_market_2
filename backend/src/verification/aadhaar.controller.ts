@@ -11,12 +11,14 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AadhaarService } from './aadhaar.service';
 import { UsersService } from '../users/users.service';
+import { BunnyService } from '../bunny/bunny.service';
 
 @Controller('profile/verify-aadhaar')
 export class AadhaarController {
     constructor(
         private readonly aadhaarService: AadhaarService,
         private readonly usersService: UsersService,
+        private readonly bunnyService: BunnyService,
     ) { }
 
     @Post()
@@ -38,21 +40,32 @@ export class AadhaarController {
 
         const userId = req.user.userId;
         const aadhaarFile = files.aadhaar[0];
-        // Note: files.selfie[0] is available here for future face matching or storage
+        const selfieFile = files.selfie[0];
 
         // 1. Verify Aadhaar Data (Offline)
         const verifiedData = await this.aadhaarService.verifyAadhaarQR(aadhaarFile.buffer);
 
-        // 2. Update User Profile with Verified Info
-        // We only store the relevant demographic details and status
+        // 2. Upload Selfie to Bunny.net
+        let selfieUrl: string | undefined = undefined;
+        try {
+            selfieUrl = await this.bunnyService.uploadFile(selfieFile, 'profiles/service-providers');
+        } catch (error) {
+            console.error('Failed to upload selfie to Bunny:', error);
+            // We can continue verification even if profile pic upload fails, 
+            // but usually we want it to succeed. Let's make it optional for now or handle as error.
+        }
+
+        // 3. Update User Profile with Verified Info
         await this.usersService.updateVerificationStatus(userId, {
             status: 'VERIFIED',
             metadata: {
                 extractedName: verifiedData.name,
                 extractedDOB: verifiedData.dob,
                 extractedGender: verifiedData.gender,
-                selfieCaptured: true, // Mark that selfie was taken
+                selfieCaptured: true,
+                selfieUrl: selfieUrl,
             },
+            profilePictureUrl: selfieUrl,
         });
 
         return {

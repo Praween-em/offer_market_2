@@ -43,9 +43,16 @@ export class UsersService {
                         businesses: true,
                         offers_offers_created_byTousers: true,
                     }
-                }
+                },
+                service_providers: true,
             },
         });
+
+        if (user && user.service_providers) {
+            (user as any).provider = user.service_providers;
+            delete (user as any).service_providers;
+        }
+
         return this.convertBigIntToNumber(user);
     }
 
@@ -238,8 +245,9 @@ export class UsersService {
         return business;
     }
 
-    async updateVerificationStatus(userId: string, data: { status: any; metadata: any }) {
-        return this.prisma.users.update({
+    async updateVerificationStatus(userId: string, data: { status: any; metadata: any; profilePictureUrl?: string }) {
+        // 1. Update User Verification Status
+        const user = await this.prisma.users.update({
             where: { id: userId },
             data: {
                 verification_status: data.status,
@@ -247,5 +255,17 @@ export class UsersService {
                 verified_at: data.status === 'VERIFIED' ? new Date() : null,
             },
         });
+
+        // 2. Update Service Provider Profile Picture if provided
+        if (data.profilePictureUrl) {
+            await this.prisma.service_providers.updateMany({
+                where: { user_id: userId },
+                data: {
+                    profile_picture: data.profilePictureUrl,
+                },
+            });
+        }
+
+        return user;
     }
 }
