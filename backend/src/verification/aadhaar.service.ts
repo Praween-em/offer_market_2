@@ -52,6 +52,11 @@ prvugdPqNOMpRf63zec3hTCKWm5YI7NBirwrBd1K14DVBQ==
 `;
 
     async verifyAadhaarQR(fileBuffer: Buffer): Promise<any> {
+        // Detect PDF and provide clear error
+        if (fileBuffer.slice(0, 4).toString() === '%PDF') {
+            throw new BadRequestException('Aadhaar PDF upload is not supported. Please upload an image (JPG/PNG).');
+        }
+
         try {
             // 1. Extract QR Data from Image
             const rawQRData = await this.extractQRFromImage(fileBuffer);
@@ -77,9 +82,41 @@ prvugdPqNOMpRf63zec3hTCKWm5YI7NBirwrBd1K14DVBQ==
 
     private async extractQRFromImage(fileBuffer: Buffer): Promise<string | null> {
         const image = await Jimp.read(fileBuffer);
-        const { data, width, height } = image.bitmap;
-        const code = jsQR(new Uint8ClampedArray(data), width, height);
-        return code ? code.data : null;
+
+        // Try 1: Original Image
+        let code = this.scanQR(image);
+        if (code) return code;
+
+        // Try 2: Greyscale
+        const greyscale = image.clone().greyscale();
+        code = this.scanQR(greyscale);
+        if (code) return code;
+
+        // Try 3: High Contrast
+        const highContrast = greyscale.clone().contrast(0.5);
+        code = this.scanQR(highContrast);
+        if (code) return code;
+
+        // Try 4: Resized (Upscaled if small)
+        if (image.bitmap.width < 1000) {
+            const resized = image.clone().resize({ w: 1000 });
+            code = this.scanQR(resized);
+            if (code) return code;
+        }
+
+        return null;
+    }
+
+    private scanQR(image: any): string | null {
+        try {
+            const { data, width, height } = image.bitmap;
+            const code = jsQR(new Uint8ClampedArray(data), width, height, {
+                inversionAttempts: 'attemptBoth',
+            });
+            return code ? code.data : null;
+        } catch (e) {
+            return null;
+        }
     }
 
     private async parseSecureQR(qrData: string): Promise<any> {
