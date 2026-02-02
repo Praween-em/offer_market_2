@@ -94,5 +94,17 @@ export class ServicesController {
     async getMyRequests(@Req() req) {
         return this.servicesService.findRequestsByUserId(req.user.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('provider-feed')
+    async getProviderFeed(@Req() req) {
+        return this.servicesService.findProviderFeed(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('request/:id')
+    async getRequestDetails(@Param('id') id: string) {
+        return this.servicesService.findRequestDetails(id);
+    }
 }
 

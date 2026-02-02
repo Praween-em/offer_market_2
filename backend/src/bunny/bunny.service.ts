@@ -36,7 +36,9 @@ export class BunnyService {
                 },
             });
 
-            return `${this.pullZoneUrl}/${path}`;
+            const baseUrl = this.pullZoneUrl.endsWith('/') ? this.pullZoneUrl.slice(0, -1) : this.pullZoneUrl;
+            const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+            return `${baseUrl}/${cleanPath}`;
         } catch (error) {
             this.logger.error(`Bunny.net Upload Error: ${error.message}`);
             if (error.response) {

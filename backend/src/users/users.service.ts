@@ -16,6 +16,7 @@ export class UsersService {
                 display_name: true,
                 profile_picture: true,
                 role: true,
+                verification_status: true,
                 created_at: true,
                 user_saved_offers: {
                     include: {
@@ -44,11 +45,27 @@ export class UsersService {
                         offers_offers_created_byTousers: true,
                     }
                 },
-                service_providers: true,
+                service_providers: {
+                    include: {
+                        service_categories: {
+                            select: {
+                                name: true
+                            }
+                        },
+                        services: {
+                            include: {
+                                service_categories: true
+                            }
+                        }
+                    }
+                },
             },
         });
 
         if (user && user.service_providers) {
+            if (user.service_providers.is_verified) {
+                user.verification_status = 'VERIFIED';
+            }
             (user as any).provider = user.service_providers;
             delete (user as any).service_providers;
         }
@@ -95,7 +112,16 @@ export class UsersService {
         });
     }
 
-    async updateProfile(userId: string, data: { display_name?: string; business_name?: string; whatsapp_number?: string; bio?: string; profile_picture?: string; website?: string }) {
+    async updateProfile(userId: string, data: {
+        display_name?: string;
+        business_name?: string;
+        whatsapp_number?: string;
+        bio?: string;
+        profile_picture?: string;
+        website?: string;
+        experience_years?: number;
+        service_area?: string;
+    }) {
         // 1. Update User
         const user = await this.prisma.users.update({
             where: { id: userId },
@@ -105,12 +131,11 @@ export class UsersService {
             },
         });
 
-        // 2. Update Business
-        // Assuming the user has a business (they should if they are in the owner app)
-        const business = await this.prisma.businesses.updateMany({
+        // 2. Update Business (if exists)
+        await this.prisma.businesses.updateMany({
             where: { owner_id: userId },
             data: {
-                business_name: data.business_name,
+                business_name: data.business_name || data.display_name,
                 whatsapp_number: data.whatsapp_number,
                 bio: data.bio,
                 logo_url: data.profile_picture,
@@ -118,15 +143,21 @@ export class UsersService {
             } as any,
         });
 
-        // Fetch updated user with business for the response
-        const updatedUser = await this.prisma.users.findUnique({
-            where: { id: userId },
-            include: {
-                businesses: true,
-            },
+        // 3. Update Service Provider (if exists)
+        await this.prisma.service_providers.updateMany({
+            where: { user_id: userId },
+            data: {
+                display_name: data.display_name,
+                bio: data.bio,
+                experience_years: data.experience_years,
+                service_area: data.service_area,
+                whatsapp_number: data.whatsapp_number,
+                profile_picture: data.profile_picture,
+            } as any,
         });
 
-        return updatedUser;
+        // Fetch updated user with provider for the response
+        return this.getProfile(userId);
     }
 
     async updateBranchLocation(userId: string, data: { branchId: string; address_line?: string; city?: string; area?: string; state?: string; pincode?: string; latitude?: number; longitude?: number }) {
@@ -253,6 +284,7 @@ export class UsersService {
                 verification_status: data.status,
                 metadata: data.metadata,
                 verified_at: data.status === 'VERIFIED' ? new Date() : null,
+                profile_picture: data.profilePictureUrl || undefined,
             },
         });
 
@@ -262,7 +294,7 @@ export class UsersService {
                 where: { user_id: userId },
                 data: {
                     profile_picture: data.profilePictureUrl,
-                },
+                } as any,
             });
         }
 

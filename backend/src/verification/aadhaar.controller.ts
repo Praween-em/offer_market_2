@@ -6,17 +6,16 @@ import {
     UseGuards,
     Req,
     BadRequestException,
+    Body,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AadhaarService } from './aadhaar.service';
 import { UsersService } from '../users/users.service';
 import { BunnyService } from '../bunny/bunny.service';
 
 @Controller('profile/verify-aadhaar')
 export class AadhaarController {
     constructor(
-        private readonly aadhaarService: AadhaarService,
         private readonly usersService: UsersService,
         private readonly bunnyService: BunnyService,
     ) { }
@@ -24,56 +23,54 @@ export class AadhaarController {
     @Post()
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(FileFieldsInterceptor([
-        { name: 'aadhaar', maxCount: 1 },
+        { name: 'aadhaar_front', maxCount: 1 },
+        { name: 'aadhaar_back', maxCount: 1 },
         { name: 'selfie', maxCount: 1 },
     ]))
     async verifyAadhaar(
-        @UploadedFiles() files: { aadhaar?: Express.Multer.File[], selfie?: Express.Multer.File[] },
+        @UploadedFiles() files: { aadhaar_front?: Express.Multer.File[], aadhaar_back?: Express.Multer.File[], selfie?: Express.Multer.File[] },
         @Req() req: any
     ) {
-        if (!files.aadhaar || !files.aadhaar[0]) {
-            throw new BadRequestException('Aadhaar image or PDF is required');
-        }
-        if (!files.selfie || !files.selfie[0]) {
-            throw new BadRequestException('Selfie is required for verification');
-        }
-
         const userId = req.user.userId;
-        const aadhaarFile = files.aadhaar[0];
-        const selfieFile = files.selfie[0];
+        const frontFile = files.aadhaar_front ? files.aadhaar_front[0] : null;
+        const backFile = files.aadhaar_back ? files.aadhaar_back[0] : null;
+        const selfieFile = files.selfie ? files.selfie[0] : null;
 
-        // 1. Verify Aadhaar Data (Offline)
-        const verifiedData = await this.aadhaarService.verifyAadhaarQR(aadhaarFile.buffer);
-
-        // 2. Upload Selfie to Bunny.net
-        let selfieUrl: string | undefined = undefined;
-        try {
-            selfieUrl = await this.bunnyService.uploadFile(selfieFile, 'profiles/service-providers');
-        } catch (error) {
-            console.error('Failed to upload selfie to Bunny:', error);
-            // We can continue verification even if profile pic upload fails, 
-            // but usually we want it to succeed. Let's make it optional for now or handle as error.
+        if (!frontFile || !backFile || !selfieFile) {
+            throw new BadRequestException('Aadhaar front, back, and selfie are all required');
         }
 
-        // 3. Update User Profile with Verified Info
+        // 1. Upload documents to Bunny.net
+        let frontUrl, backUrl, selfieUrl;
+
+        try {
+            const folder = `verifications/user-${userId}`;
+            [frontUrl, backUrl, selfieUrl] = await Promise.all([
+                this.bunnyService.uploadFile(frontFile, folder),
+                this.bunnyService.uploadFile(backFile, folder),
+                this.bunnyService.uploadFile(selfieFile, folder),
+            ]);
+        } catch (error) {
+            console.error('Failed to upload documents to Bunny:', error);
+            throw new BadRequestException('Failed to upload verification documents');
+        }
+
+        // 2. Update User Profile with Pending Status and Metadata
         await this.usersService.updateVerificationStatus(userId, {
-            status: 'VERIFIED',
+            status: 'PENDING' as any,
             metadata: {
-                extractedName: verifiedData.name,
-                extractedDOB: verifiedData.dob,
-                extractedGender: verifiedData.gender,
-                selfieCaptured: true,
-                selfieUrl: selfieUrl,
+                aadhaar_front_url: frontUrl,
+                aadhaar_back_url: backUrl,
+                selfie_url: selfieUrl,
+                submitted_at: new Date().toISOString(),
             },
-            profilePictureUrl: selfieUrl,
+            profilePictureUrl: selfieUrl, // Also set selfie as profile pic
         });
 
         return {
-            message: 'Aadhaar verification successful',
-            data: {
-                name: verifiedData.name,
-                dob: verifiedData.dob,
-            },
+            message: 'Documents submitted successfully for manual review',
+            status: 'PENDING',
+            selfieUrl: selfieUrl,
         };
     }
 }

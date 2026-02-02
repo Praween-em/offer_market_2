@@ -80,8 +80,11 @@ export class AuthService {
             phone: user.phone,
             role: user.role,
             display_name: user.display_name,
+            profile_picture: user.profile_picture,
+            verification_status: serviceProvider?.is_verified ? 'VERIFIED' : user.verification_status,
             is_service_provider: !!serviceProvider,
             is_business_owner: !!business,
+            provider: serviceProvider ? serviceProvider : undefined,
         };
     }
 
@@ -165,7 +168,6 @@ export class AuthService {
                 return {
                     success: true,
                     user: userData,
-                    provider
                 };
             } else {
                 // Business Owner Path
@@ -215,7 +217,6 @@ export class AuthService {
                 return {
                     success: true,
                     user: userData,
-                    business
                 };
             }
         } catch (error) {
@@ -265,7 +266,6 @@ export class AuthService {
         return {
             success: true,
             user: userData,
-            provider,
         };
     }
 }

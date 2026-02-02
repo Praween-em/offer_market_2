@@ -17,6 +17,8 @@ import { AffiliateModule } from './affiliate/affiliate.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ServicesModule } from './services/services.module';
 import { VerificationModule } from './verification/verification.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -35,6 +37,10 @@ import { VerificationModule } from './verification/verification.module';
     WalletModule,
     ServicesModule,
     VerificationModule,
+    ServicesModule,
+    VerificationModule,
+    ReviewsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

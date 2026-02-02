@@ -86,15 +86,15 @@ model businesses {
   business_type            business_type_enum         @default(other)
   brand_type               brand_type_enum            @default(local)
   gst_number               String?                    @db.VarChar(32)
-  whatsapp_number          String?                    @db.VarChar(20)
   description              String?
-  bio                      String?
   logo_url                 String?
-  website                  String?
   is_verified              Boolean                    @default(false)
   status                   String                     @default("active") @db.VarChar(16)
   created_at               DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  whatsapp_number          String?                    @db.VarChar(20)
+  bio                      String?
+  website                  String?
   business_branches        business_branches[]
   business_metrics         business_metrics?
   business_reports         business_reports[]
@@ -140,9 +140,9 @@ model media_assets {
   url         String
   media_type  media_type_enum @default(image)
   metadata    Json?
+  created_at  DateTime        @default(now()) @db.Timestamptz(6)
   nsfw_score  Float?
   nsfw_status String?         @default("PENDING")
-  created_at  DateTime        @default(now()) @db.Timestamptz(6)
   users       users?          @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   offer_media offer_media[]
 
@@ -243,8 +243,8 @@ model offer_metrics {
   clicks                 BigInt    @default(0)
   claims                 BigInt    @default(0)
   saves                  BigInt    @default(0)
-  shares                 BigInt    @default(0)
   last_metric_updated_at DateTime? @db.Timestamptz(6)
+  shares                 BigInt    @default(0)
   offers                 offers    @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -320,7 +320,6 @@ model offers {
   title                           String              @db.VarChar(255)
   short_description               String?             @db.VarChar(500)
   description                     String?
-  affiliate_url                   String?
   offer_scope                     String?             @db.VarChar(32)
   start_date                      DateTime            @db.Timestamptz(6)
   end_date                        DateTime            @db.Timestamptz(6)
@@ -329,6 +328,7 @@ model offers {
   approved_by                     String?             @db.Uuid
   created_at                      DateTime            @default(now()) @db.Timestamptz(6)
   updated_at                      DateTime            @default(now()) @db.Timestamptz(6)
+  affiliate_url                   String?
   notifications                   notifications[]
   offer_categories                offer_categories[]
   offer_claims                    offer_claims[]
@@ -389,7 +389,7 @@ model affiliate_offers {
   description         String?
   image_url           String?
   affiliate_url       String
-  platform            String   @db.VarChar(64) // amazon, flipkart, etc.
+  platform            String   @db.VarChar(64)
   original_price      Decimal? @db.Decimal(12, 2)
   offer_price         Decimal? @db.Decimal(12, 2)
   discount_percentage Float?
@@ -404,15 +404,15 @@ model affiliate_offers {
 
 model affiliate_stores {
   id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                String   @db.VarChar(128) // "Amazon", "Flipkart", "Myntra"
-  slug                String   @unique @db.VarChar(64) // "amazon", "flipkart"
-  description         String?  // "Shop on Amazon and earn up to 10.2% cashback"
+  name                String   @db.VarChar(128)
+  slug                String   @unique @db.VarChar(64)
+  description         String?
   logo_url            String?
-  icon_name           String?  @db.VarChar(64) // MaterialCommunityIcons name
-  brand_color         String?  @db.VarChar(7) // Hex color like "#FF9900"
-  affiliate_url       String   // EarnKaro store link
-  profit_percentage   Float    // Max profit % (e.g., 10.2 for Amazon)
-  cashback_percentage Float    // What you give to users (e.g., 5.0)
+  icon_name           String?  @db.VarChar(64)
+  brand_color         String?  @db.VarChar(7)
+  affiliate_url       String
+  profit_percentage   Float
+  cashback_percentage Float
   is_active           Boolean  @default(true)
   display_order       Int      @default(0)
   created_at          DateTime @default(now()) @db.Timestamptz(6)
@@ -458,15 +458,18 @@ model users {
   is_phone_verified                                    Boolean                    @default(false)
   status                                               user_status_enum           @default(active)
   display_name                                         String?                    @db.VarChar(255)
-  profile_picture                                      String?
   metadata                                             Json?
   created_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
+  profile_picture                                      String?
+  verification_status                                  verification_status_enum   @default(NOT_STARTED)
+  verified_at                                          DateTime?                  @db.Timestamptz(6)
   audit_logs                                           audit_logs[]
   business_reports_business_reports_reported_byTousers business_reports[]         @relation("business_reports_reported_byTousers")
   business_reports_business_reports_reviewed_byTousers business_reports[]         @relation("business_reports_reviewed_byTousers")
   businesses                                           businesses[]
   campaigns                                            campaigns[]
+  cashback_transactions                                cashback_transactions[]
   media_assets                                         media_assets[]
   notifications                                        notifications[]
   offer_claims                                         offer_claims[]
@@ -477,16 +480,14 @@ model users {
   offer_views                                          offer_views[]
   offers_offers_approved_byTousers                     offers[]                   @relation("offers_approved_byTousers")
   offers_offers_created_byTousers                      offers[]                   @relation("offers_created_byTousers")
+  service_leads                                        service_leads[]
+  service_providers                                    service_providers?
+  service_requests                                     service_requests[]
+  service_reviews                                      service_reviews[]
+  user_device_tokens                                   user_device_tokens[]
   user_followed_businesses                             user_followed_businesses[]
   user_saved_offers                                    user_saved_offers[]
-  user_device_tokens                                   user_device_tokens[]
   user_wallets                                         user_wallets?
-  cashback_transactions                                cashback_transactions[]
-  service_providers                                    service_providers?
-  service_leads                                        service_leads[]
-  service_requests                                     service_requests[]
-  verification_status                                  verification_status_enum   @default(NOT_STARTED)
-  verified_at                                          DateTime?                  @db.Timestamptz(6)
 
   @@index([role, status], map: "idx_users_role_status")
 }
@@ -511,19 +512,19 @@ model offer_leads {
 }
 
 model service_categories {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String              @db.VarChar(128)
-  parent_id         String?             @db.Uuid
-  icon              String?             @db.VarChar(64)
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String               @db.VarChar(128)
+  icon              String?              @db.VarChar(64)
   description       String?
-  provider_type     String?             @db.VarChar(32) // 'individual', 'business', or null for roots
-  is_active         Boolean             @default(true)
-  created_at        DateTime            @default(now()) @db.Timestamptz(6)
-  
-  parent            service_categories? @relation("service_categories_hierarchy", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  is_active         Boolean              @default(true)
+  created_at        DateTime             @default(now()) @db.Timestamptz(6)
+  parent_id         String?              @db.Uuid
+  provider_type     String?              @db.VarChar(32)
+  parent            service_categories?  @relation("service_categories_hierarchy", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sub_categories    service_categories[] @relation("service_categories_hierarchy")
   service_providers service_providers[]
   service_requests  service_requests[]
+  services          services[]
 }
 
 model service_providers {
@@ -537,33 +538,54 @@ model service_providers {
   service_area       String?              @db.VarChar(255)
   whatsapp_number    String?              @db.VarChar(20)
   phone_number       String?              @db.VarChar(20)
-  profile_picture    String?
   is_verified        Boolean              @default(false)
   is_active          Boolean              @default(true)
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
   updated_at         DateTime             @default(now()) @db.Timestamptz(6)
-  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_categories service_categories   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  services           services[]
-  service_portfolios service_portfolios[]
+  profile_picture    String?
+  average_rating     Decimal              @default(0) @db.Decimal(3, 2)
+  total_reviews      Int                  @default(0)
   service_leads      service_leads[]
+  service_portfolios service_portfolios[]
+  service_categories service_categories   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_reviews    service_reviews[]
+  services           services[]
 
   @@index([category_id])
   @@index([is_active])
+  @@index([average_rating])
+}
+
+model service_reviews {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String            @db.Uuid
+  user_id           String            @db.Uuid
+  rating            Int               @db.SmallInt
+  comment           String?
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([provider_id])
+  @@index([user_id])
 }
 
 model services {
-  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id         String            @db.Uuid
-  title               String            @db.VarChar(255)
-  description         String?
-  price               Decimal?          @db.Decimal(12, 2)
-  price_unit          String            @default("service") @db.VarChar(32) // e.g., "hour", "visit"
-  is_active           Boolean           @default(true)
-  created_at          DateTime          @default(now()) @db.Timestamptz(6)
-  service_providers   service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id        String              @db.Uuid
+  title              String              @db.VarChar(255)
+  description        String?
+  price              Decimal?            @db.Decimal(12, 2)
+  price_unit         String              @default("service") @db.VarChar(32)
+  is_active          Boolean             @default(true)
+  created_at         DateTime            @default(now()) @db.Timestamptz(6)
+  category_id        String?             @db.Uuid
+  service_categories service_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_providers  service_providers   @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([provider_id])
+  @@index([category_id])
 }
 
 model service_portfolios {
@@ -604,9 +626,9 @@ model service_requests {
   status             String                  @default("pending") @db.VarChar(32)
   created_at         DateTime                @default(now()) @db.Timestamptz(6)
   updated_at         DateTime                @default(now()) @db.Timestamptz(6)
-  users              users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_categories service_categories      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   media              service_request_media[]
+  service_categories service_categories      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id])
   @@index([category_id])
@@ -622,6 +644,17 @@ model service_request_media {
   @@index([request_id])
 }
 
+model user_device_tokens {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  fcm_token  String   @unique
+  platform   String   @default("android") @db.VarChar(16)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+}
+
 enum brand_type_enum {
   local
   chain
@@ -635,17 +668,6 @@ enum business_type_enum {
   footwear
   restaurant
   other
-}
-
-model user_device_tokens {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String   @db.Uuid
-  fcm_token  String   @unique
-  platform   String   @default("android") @db.VarChar(16)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([user_id])
 }
 
 enum media_type_enum {
@@ -672,7 +694,6 @@ enum offer_status_enum {
 }
 
 enum offer_type_enum {
-  none
   flat
   percentage
   buy_x_get_y
@@ -687,6 +708,7 @@ enum offer_type_enum {
   referral
   first_order
   custom
+  none
 }
 
 enum report_reason_enum {
@@ -707,8 +729,8 @@ enum report_status_enum {
 enum role_enum {
   consumer
   business_owner
-  service_provider
   admin
+  service_provider
 }
 
 enum user_status_enum {
@@ -728,4 +750,19 @@ enum verification_status_enum {
   PENDING
   VERIFIED
   REJECTED
+}
+
+model analytics_events {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id String   @db.Uuid
+  user_id     String?  @db.Uuid
+  event_type  String   @db.VarChar(32) // call, whatsapp, view
+  source      String   @db.VarChar(32) // profile, service, request
+  source_id   String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  metadata    Json?
+
+  @@index([provider_id])
+  @@index([event_type])
+  @@index([created_at])
 }
