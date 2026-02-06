@@ -57,4 +57,16 @@ export class UsersController {
     getBusiness(@Param('id') id: string, @Request() req: any) {
         return this.usersService.findOneBusiness(id, req.user?.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('nominee')
+    getNominee(@Request() req: any) {
+        return this.usersService.getNominee(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('nominee')
+    updateNominee(@Request() req: any, @Body() data: { name: string; contact: string; relationship: string }) {
+        return this.usersService.updateNominee(req.user.userId, data);
+    }
 }

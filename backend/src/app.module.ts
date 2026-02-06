@@ -19,6 +19,8 @@ import { ServicesModule } from './services/services.module';
 import { VerificationModule } from './verification/verification.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ConsentAuditModule } from './consent-audit/consent-audit.module';
+import { LocationModule } from './location/location.module';
 
 @Module({
   imports: [
@@ -37,10 +39,10 @@ import { AnalyticsModule } from './analytics/analytics.module';
     WalletModule,
     ServicesModule,
     VerificationModule,
-    ServicesModule,
-    VerificationModule,
     ReviewsModule,
     AnalyticsModule,
+    ConsentAuditModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

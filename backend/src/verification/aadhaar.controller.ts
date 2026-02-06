@@ -13,11 +13,18 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { BunnyService } from '../bunny/bunny.service';
 
+import { AadhaarOfflineService } from './aadhaar-offline.service';
+import { CashfreeService } from './cashfree.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile } from '@nestjs/common';
+
 @Controller('profile/verify-aadhaar')
 export class AadhaarController {
     constructor(
         private readonly usersService: UsersService,
         private readonly bunnyService: BunnyService,
+        private readonly offlineService: AadhaarOfflineService,
+        private readonly cashfreeService: CashfreeService,
     ) { }
 
     @Post()
@@ -72,5 +79,63 @@ export class AadhaarController {
             status: 'PENDING',
             selfieUrl: selfieUrl,
         };
+    }
+
+    @Post('okyc-init')
+    @UseGuards(JwtAuthGuard)
+    async okycInit(@Body('aadhaar_number') aadhaarNumber: string) {
+        if (!aadhaarNumber || aadhaarNumber.length !== 12) {
+            throw new BadRequestException('Valid 12-digit Aadhaar number is required');
+        }
+
+        return this.cashfreeService.initiateAadhaarOtp(aadhaarNumber);
+    }
+
+    @Post('okyc-verify')
+    @UseGuards(JwtAuthGuard)
+    async okycVerify(
+        @Req() req: any,
+        @Body() data: { otp: string; client_id: string; aadhaar_number: string; full_name: string; photo_base64?: string }
+    ) {
+        if (!data.otp || !data.client_id) {
+            throw new BadRequestException('OTP and Client ID (ref_id) are required');
+        }
+
+        // 1. Verify with Cashfree
+        const cashfreeData = await this.cashfreeService.verifyAadhaarOtp(data.otp, data.client_id);
+
+        // 2. Process verification in UsersService
+        return this.usersService.verifyOkyc(req.user.userId, {
+            aadhaar_number: data.aadhaar_number,
+            full_name: cashfreeData.name, // Use name from Cashfree
+            photo_base64: cashfreeData.pht || data.photo_base64 || '',
+            demographics: cashfreeData
+        });
+    }
+
+    @Post('verify-offline')
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('aadhaar_zip'))
+    async verifyOffline(
+        @Req() req: any,
+        @UploadedFile() file: Express.Multer.File,
+        @Body('share_code') shareCode: string
+    ) {
+        if (!file || !shareCode) {
+            throw new BadRequestException('Aadhaar ZIP file and Share Code are required');
+        }
+
+        // 1. Verify XML Demographics and Signature
+        const demographics = await this.offlineService.verifyOfflineXml(file.buffer, shareCode);
+
+        // 2. Map offline data to OKYC verification flow
+        // The photo comes in the XML as base64 string
+        return this.usersService.verifyOkyc(req.user.userId, {
+            aadhaar_number: demographics.referenceId, // Reference ID acts as a token for the session
+            full_name: demographics.name,
+            photo_base64: demographics.photo,
+            isOffline: true,
+            demographics: demographics
+        });
     }
 }

@@ -1,25 +1,33 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LocationService } from '../location/location.service';
 
 @Injectable()
 export class ServicesService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private locationService: LocationService,
+    ) { }
 
     async findAllCategories() {
-        // Return root categories with their sub-categories nested
+        // Return ALL active categories (both parent and subcategories) as a flat list
+        // This allows frontend to display all services individually
         return this.prisma.service_categories.findMany({
-            where: { parent_id: null },
+            where: { is_active: true },
             include: {
-                sub_categories: {
-                    orderBy: { name: 'asc' },
+                parent: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
                 },
             },
             orderBy: { name: 'asc' },
         });
     }
 
-    async findAllProviders(categoryId?: string, search?: string) {
+    async findAllProviders(categoryId?: string, search?: string, lat?: number, lng?: number, radiusKm: number = 25) {
         let categoryIds: string[] | undefined;
 
         if (categoryId) {
@@ -34,19 +42,60 @@ export class ServicesService {
             }
         }
 
-        return this.prisma.service_providers.findMany({
-            where: {
-                AND: [
-                    categoryIds ? { category_id: { in: categoryIds } } : {},
-                    search ? {
-                        OR: [
-                            { display_name: { contains: search, mode: 'insensitive' } },
-                            { service_categories: { name: { contains: search, mode: 'insensitive' } } },
-                            { service_area: { contains: search, mode: 'insensitive' } }
-                        ]
-                    } : {}
-                ]
-            },
+        const where: any = {
+            AND: [
+                categoryIds ? { category_id: { in: categoryIds } } : {},
+                { is_active: true }
+            ]
+        };
+
+        if (search) {
+            const rawTokens = search.split(/\s+/).filter(t => t.length > 0);
+            if (rawTokens.length > 0) {
+                const tokenFilters = rawTokens.map(token => {
+                    const variants = [token];
+                    // Basic pluralization/singularization
+                    if (token.toLowerCase().endsWith('s') && token.length > 3) {
+                        variants.push(token.slice(0, -1));
+                    } else if (token.length > 3) {
+                        variants.push(token + 's');
+                    }
+
+                    return {
+                        OR: variants.flatMap(v => [
+                            { display_name: { contains: v, mode: 'insensitive' } },
+                            { keywords: { contains: v, mode: 'insensitive' } },
+                            { service_area: { contains: v, mode: 'insensitive' } },
+                            {
+                                service_categories: {
+                                    OR: [
+                                        { name: { contains: v, mode: 'insensitive' } },
+                                        { keywords: { contains: v, mode: 'insensitive' } }
+                                    ]
+                                }
+                            },
+                            {
+                                services: {
+                                    some: {
+                                        OR: [
+                                            { title: { contains: v, mode: 'insensitive' } },
+                                            { description: { contains: v, mode: 'insensitive' } },
+                                            { price_unit: { contains: v, mode: 'insensitive' } }
+                                        ],
+                                        is_active: true
+                                    }
+                                }
+                            }
+                        ])
+                    };
+                });
+                where.AND.push(...tokenFilters);
+            }
+        }
+
+
+        const providers = await this.prisma.service_providers.findMany({
+            where,
             include: {
                 users: {
                     select: {
@@ -55,9 +104,55 @@ export class ServicesService {
                 },
                 service_categories: true,
             },
-            orderBy: { created_at: 'desc' },
+            orderBy: [
+                { is_verified: 'desc' },
+                { created_at: 'desc' }
+            ],
         });
+
+        let results = this.convertBigIntToNumber(providers);
+
+        // Filter by radius if lat/lng are provided
+        if (lat && lng) {
+            results = results.map(provider => {
+                let distance: number | null = null;
+                if ((provider as any).latitude && (provider as any).longitude) {
+                    distance = this.locationService.calculateDistance(
+                        lat,
+                        lng,
+                        Number((provider as any).latitude),
+                        Number((provider as any).longitude)
+                    );
+                }
+                return { ...provider, distance_km: distance } as any;
+            });
+
+            // Filter out providers beyond radiusKm if specified
+            if (radiusKm > 0) {
+                results = results.filter(provider => {
+                    if (provider.distance_km === null) return true; // Keep if no location
+                    return provider.distance_km <= radiusKm;
+                });
+            }
+
+            // Sort by distance if location is provided
+            results.sort((a: any, b: any) => {
+                if (a.distance_km === null) return 1;
+                if (b.distance_km === null) return -1;
+                return a.distance_km - b.distance_km;
+            });
+
+            // Re-apply verification boost after distance sort
+            results.sort((a, b) => {
+                if (a.is_verified && !b.is_verified) return -1;
+                if (!a.is_verified && b.is_verified) return 1;
+                return 0;
+            });
+        }
+
+        return results;
     }
+
 
     async findOneProvider(id: string) {
         return this.prisma.service_providers.findUnique({
@@ -163,17 +258,29 @@ export class ServicesService {
         title: string;
         description?: string;
         images?: string[];
+        latitude?: number;
+        longitude?: number;
     }) {
+        // Optional: Get location name if coordinates provided
+        let locationName: string | null = null;
+        if (data.latitude && data.longitude) {
+            locationName = await this.locationService.reverseGeocode(
+                data.latitude,
+                data.longitude,
+            );
+        }
+
+        const { images, ...remainingData } = data;
+
         return this.prisma.service_requests.create({
             data: {
                 user_id: userId,
-                category_id: data.categoryId,
-                title: data.title,
-                description: data.description,
-                media: data.images ? {
-                    create: data.images.map(url => ({ image_url: url }))
+                ...remainingData,
+                location_name: locationName,
+                media: images ? {
+                    create: images.map(url => ({ image_url: url }))
                 } : undefined
-            },
+            } as any,
             include: {
                 media: true,
                 service_categories: true
@@ -210,17 +317,19 @@ export class ServicesService {
     }
 
     async findProviderFeed(userId: string) {
-        // 1. Get the provider's category
-        const provider = await this.prisma.service_providers.findUnique({
+        // 1. Get the provider's category and location
+        const provider: any = await this.prisma.service_providers.findUnique({
             where: { user_id: userId },
-            select: { category_id: true }
+            select: {
+                category_id: true,
+                latitude: true,
+                longitude: true
+            } as any
         });
 
         if (!provider) return [];
 
         // 2. Fetch all related category IDs (self + all descendants)
-        // For simplicity, we fetch all sub-categories of this category
-        // In a real production app with deep nesting, we might use a recursive CTE
         const subCategories = await this.prisma.service_categories.findMany({
             where: { parent_id: provider.category_id },
             select: { id: true }
@@ -228,8 +337,8 @@ export class ServicesService {
 
         const categoryIds = [provider.category_id, ...subCategories.map(c => c.id)];
 
-        // 3. Fetch requests for these categories strictly
-        const requests = await this.prisma.service_requests.findMany({
+        // 3. Fetch requests for these categories
+        let requests: any[] = await this.prisma.service_requests.findMany({
             where: {
                 category_id: { in: categoryIds },
                 status: 'pending'
@@ -246,14 +355,62 @@ export class ServicesService {
                 }
             },
             orderBy: { created_at: 'desc' },
-            take: 50
+            take: 200 // Get more initially, will filter by distance
         });
 
-        return this.convertBigIntToNumber(requests);
+        // 4. Filter by 12km radius if provider has location
+        let filteredRequests = requests;
+        if ((provider as any).latitude && (provider as any).longitude) {
+            const RADIUS_KM = 12;
+            filteredRequests = requests.filter(request => {
+                // If request has no location, include it (backward compatibility)
+                if (!(request as any).latitude || !(request as any).longitude) {
+                    return true;
+                }
+
+                return this.locationService.isWithinRadius(
+                    Number((provider as any).latitude),
+                    Number((provider as any).longitude),
+                    Number((request as any).latitude),
+                    Number((request as any).longitude),
+                    RADIUS_KM
+                );
+            });
+
+            // 5. Add distance to each request
+            filteredRequests = filteredRequests.map(request => {
+                let distance: number | null = null;
+                if ((request as any).latitude && (request as any).longitude) {
+                    distance = this.locationService.calculateDistance(
+                        Number((provider as any).latitude),
+                        Number((provider as any).longitude),
+                        Number((request as any).latitude),
+                        Number((request as any).longitude)
+                    );
+                }
+
+                return {
+                    ...request,
+                    distance_km: distance
+                } as any;
+            });
+
+            // Sort by distance (closest first), then by created_at
+            filteredRequests.sort((a: any, b: any) => {
+                if (a.distance_km === null && b.distance_km === null) {
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                }
+                if (a.distance_km === null) return 1;
+                if (b.distance_km === null) return -1;
+                return a.distance_km - b.distance_km;
+            });
+        }
+
+        return this.convertBigIntToNumber(filteredRequests.slice(0, 50));
     }
 
-    async findRequestDetails(requestId: string) {
-        const request = await this.prisma.service_requests.findUnique({
+    async findRequestDetails(requestId: string, providerUserId?: string) {
+        const request: any = await this.prisma.service_requests.findUnique({
             where: { id: requestId },
             include: {
                 media: true,
@@ -266,14 +423,36 @@ export class ServicesService {
                     select: {
                         id: true,
                         display_name: true,
-                        profile_picture: true,
-                        phone: true
+                        profile_picture: true
+                        // phone hidden until unlocked via reveal-contact
                     }
                 }
             }
         });
 
-        return this.convertBigIntToNumber(request);
+        if (!request) return null;
+
+        let result = this.convertBigIntToNumber(request);
+
+        // Add distance if providerUserId is provided
+        if (providerUserId && (request as any).latitude && (request as any).longitude) {
+            const provider: any = await this.prisma.service_providers.findUnique({
+                where: { user_id: providerUserId },
+                select: { latitude: true, longitude: true } as any
+            });
+
+            if ((provider as any)?.latitude && (provider as any)?.longitude) {
+                const distance = this.locationService.calculateDistance(
+                    Number((provider as any).latitude),
+                    Number((provider as any).longitude),
+                    Number((request as any).latitude),
+                    Number((request as any).longitude)
+                );
+                result.distance_km = distance;
+            }
+        }
+
+        return result;
     }
 
     private convertBigIntToNumber(obj: any): any {

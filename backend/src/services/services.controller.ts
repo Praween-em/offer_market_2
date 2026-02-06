@@ -12,11 +12,20 @@ export class ServicesController {
     }
 
     @Get('providers')
-    findAllProviders(
+    async getProviders(
         @Query('categoryId') categoryId?: string,
-        @Query('search') search?: string
+        @Query('search') search?: string,
+        @Query('lat') lat?: string,
+        @Query('lng') lng?: string,
+        @Query('radius') radius?: string
     ) {
-        return this.servicesService.findAllProviders(categoryId, search);
+        return this.servicesService.findAllProviders(
+            categoryId,
+            search,
+            lat ? parseFloat(lat) : undefined,
+            lng ? parseFloat(lng) : undefined,
+            radius ? parseFloat(radius) : undefined
+        );
     }
 
     @Get('providers/:id')
@@ -103,8 +112,8 @@ export class ServicesController {
 
     @UseGuards(JwtAuthGuard)
     @Get('request/:id')
-    async getRequestDetails(@Param('id') id: string) {
-        return this.servicesService.findRequestDetails(id);
+    async getRequestDetails(@Req() req, @Param('id') id: string) {
+        return this.servicesService.findRequestDetails(id, req.user.userId);
     }
 }
 
