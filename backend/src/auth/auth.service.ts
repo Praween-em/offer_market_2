@@ -70,9 +70,16 @@ export class AuthService {
     }
 
     private async getUserWithFlags(user: any) {
-        const [serviceProvider, business] = await Promise.all([
-            this.prisma.service_providers.findUnique({ where: { user_id: user.id } }),
+        const [serviceProvider, business, userVerification] = await Promise.all([
+            this.prisma.service_providers.findUnique({
+                where: { user_id: user.id },
+                include: { service_categories: { select: { name: true } } }
+            }),
             this.prisma.businesses.findFirst({ where: { owner_id: user.id } }),
+            this.prisma.user_verification.findUnique({
+                where: { user_id: user.id },
+                select: { photo_base64: true, full_name_xml: true, verified_at: true }
+            }),
         ]);
 
         return {
@@ -85,6 +92,7 @@ export class AuthService {
             is_service_provider: !!serviceProvider,
             is_business_owner: !!business,
             provider: serviceProvider ? serviceProvider : undefined,
+            user_verification: userVerification || undefined,
         };
     }
 

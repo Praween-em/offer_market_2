@@ -572,7 +572,7 @@ model lead_unlocks {
   customer_id          String?           @db.Uuid
   ad_completion_token  String?
   revealed_at          DateTime          @default(now()) @db.Timestamptz(6)
-  user_verification    user_verification @relation(fields: [worker_id], references: [user_id], onDelete: Cascade)
+  users                users             @relation(fields: [worker_id], references: [id], onDelete: Cascade)
   service_requests     service_requests  @relation(fields: [lead_id], references: [id])
 
   @@unique([lead_id, worker_id], name: "limit_three")
