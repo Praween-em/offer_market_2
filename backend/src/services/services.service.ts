@@ -274,13 +274,21 @@ export class ServicesService {
 
         return this.prisma.service_requests.create({
             data: {
-                user_id: userId,
-                ...remainingData,
+                title: data.title,
+                description: data.description,
+                latitude: data.latitude,
+                longitude: data.longitude,
                 location_name: locationName,
+                users: {
+                    connect: { id: userId }
+                },
+                service_categories: {
+                    connect: { id: data.categoryId }
+                },
                 media: images ? {
                     create: images.map(url => ({ image_url: url }))
                 } : undefined
-            } as any,
+            },
             include: {
                 media: true,
                 service_categories: true
