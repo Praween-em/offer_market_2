@@ -115,5 +115,17 @@ export class ServicesController {
     async getRequestDetails(@Req() req, @Param('id') id: string) {
         return this.servicesService.findRequestDetails(id, req.user.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('requests/:id/reactivate')
+    async reactivateRequest(@Req() req, @Param('id') id: string) {
+        return this.servicesService.reactivateRequest(id, req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('requests/:id/cancel')
+    async cancelRequest(@Req() req, @Param('id') id: string) {
+        return this.servicesService.cancelRequest(id, req.user.userId);
+    }
 }
 
