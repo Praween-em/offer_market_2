@@ -463,6 +463,45 @@ export class ServicesService {
         return result;
     }
 
+    async reactivateRequest(requestId: string, userId: string) {
+        // Verify ownership
+        const request = await this.prisma.service_requests.findFirst({
+            where: { id: requestId, user_id: userId }
+        });
+
+        if (!request) {
+            throw new Error('Request not found or unauthorized');
+        }
+
+        return this.prisma.service_requests.update({
+            where: { id: requestId },
+            data: {
+                unlock_count: 0,
+                status: 'pending',
+                updated_at: new Date()
+            }
+        });
+    }
+
+    async cancelRequest(requestId: string, userId: string) {
+        // Verify ownership
+        const request = await this.prisma.service_requests.findFirst({
+            where: { id: requestId, user_id: userId }
+        });
+
+        if (!request) {
+            throw new Error('Request not found or unauthorized');
+        }
+
+        return this.prisma.service_requests.update({
+            where: { id: requestId },
+            data: {
+                status: 'cancelled',
+                updated_at: new Date()
+            }
+        });
+    }
+
     private convertBigIntToNumber(obj: any): any {
         if (obj === null || obj === undefined) return obj;
         if (typeof obj === 'bigint') return Number(obj);
