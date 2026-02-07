@@ -492,6 +492,7 @@ model users {
   user_verification                                    user_verification?
   grievance_redressal                                  grievance_redressal[]
   forensic_audit_logs                                  forensic_audit_logs[]
+  lead_unlocks                                         lead_unlocks[]
 
   @@index([role, status], map: "idx_users_role_status")
 }
@@ -553,7 +554,6 @@ model user_verification {
   users             users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   identity_vault    identity_vault[]
   user_nominees     user_nominees[]
-  lead_unlocks      lead_unlocks[]
 }
 
 model identity_vault {
