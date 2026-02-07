@@ -39,10 +39,18 @@ export class BunnyService {
             const baseUrl = this.pullZoneUrl.endsWith('/') ? this.pullZoneUrl.slice(0, -1) : this.pullZoneUrl;
             const cleanPath = path.startsWith('/') ? path.substring(1) : path;
             return `${baseUrl}/${cleanPath}`;
-        } catch (error) {
+        } catch (error: any) {
             this.logger.error(`Bunny.net Upload Error: ${error.message}`);
             if (error.response) {
+                this.logger.error(`Response code: ${error.response.status}`);
                 this.logger.error(`Response Data: ${JSON.stringify(error.response.data)}`);
+
+                if (error.response.status === 401) {
+                    this.logger.warn('--- Bunny.net 401 Troubleshooting ---');
+                    this.logger.warn('1. Verify BUNNY_ACCESS_KEY is the STORAGE ZONE PASSWORD, not the Account API Key.');
+                    this.logger.warn('2. Verify BUNNY_STORAGE_ZONE_NAME matches exactly.');
+                    this.logger.warn(`3. You are using hostname: ${this.storageHostname}. Check if this is correct for your region.`);
+                }
             }
             throw new Error('Failed to upload file to Bunny.net');
         }
