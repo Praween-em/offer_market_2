@@ -26,4 +26,9 @@ export class NotificationsController {
     async clearNotifications(@Request() req: any) {
         return this.notificationsService.clearAll(req.user.userId);
     }
+
+    @Post('send-test')
+    async sendTest(@Body() body: { fcmToken: string }) {
+        return this.notificationsService.sendTestNotification(body.fcmToken);
+    }
 }

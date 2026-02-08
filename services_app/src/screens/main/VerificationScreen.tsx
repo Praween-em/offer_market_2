@@ -8,13 +8,13 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-    Image,
+    TextInput,
+    KeyboardAvoidingView,
     Platform,
-    PermissionsAndroid,
+    Linking,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
-import { launchCamera, launchImageLibrary, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
 import DocumentPicker from 'react-native-document-picker';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,117 +23,48 @@ import { useAuth } from '../../context/AuthContext';
 const VerificationScreen = ({ navigation }: any) => {
     const { updateUser } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [aadhaarFile, setAadhaarFile] = useState<any>(null);
-    const [selfieFile, setSelfieFile] = useState<any>(null);
 
-    // Image Compression Options
-    const commonOptions = {
-        mediaType: 'photo' as const,
-        quality: 0.5 as const,
-        maxWidth: 800,
-        maxHeight: 800,
-        includeBase64: false,
-    };
+    // Form State
+    const [zipFile, setZipFile] = useState<any>(null);
+    const [shareCode, setShareCode] = useState('');
 
-    const aadhaarOptions = {
-        ...commonOptions,
-        quality: 0.8 as const,
-        maxWidth: 1500,
-        maxHeight: 1500,
-    };
-
-    const requestCameraPermission = async () => {
-        if (Platform.OS === 'android') {
-            try {
-                const granted = await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.CAMERA,
-                    {
-                        title: 'Camera Permission',
-                        message: 'App needs access to your camera to verify your identity.',
-                        buttonNeutral: 'Ask Me Later',
-                        buttonNegative: 'Cancel',
-                        buttonPositive: 'OK',
-                    },
-                );
-                return granted === PermissionsAndroid.RESULTS.GRANTED;
-            } catch (err) {
-                console.warn(err);
-                return false;
-            }
-        }
-        return true;
-    };
-
-    const handleAadhaarCamera = async () => {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            Alert.alert('Permission Denied', 'Camera permission is required to take a photo of your Aadhaar.');
-            return;
-        }
-
-        try {
-            const result = await launchCamera(aadhaarOptions as CameraOptions);
-            if (result.assets && result.assets[0]) {
-                setAadhaarFile(result.assets[0]);
-            }
-        } catch (error) {
-            console.error('Camera error:', error);
-        }
-    };
-
-    const handleAadhaarGallery = async () => {
-        try {
-            const result = await launchImageLibrary(aadhaarOptions as ImageLibraryOptions);
-            if (result.assets && result.assets[0]) {
-                setAadhaarFile(result.assets[0]);
-            }
-        } catch (error) {
-            console.error('Gallery error:', error);
-        }
-    };
-
-    const handleAadhaarDocument = async () => {
+    const handlePickZip = async () => {
         try {
             const result = await DocumentPicker.pick({
-                type: [DocumentPicker.types.images],
+                type: [DocumentPicker.types.zip],
+                presentationStyle: 'fullScreen',
+                copyTo: 'cachesDirectory',
             });
+
             if (result && result[0]) {
-                setAadhaarFile(result[0]);
+                const file = result[0];
+                // Basic validation for size (e.g. < 5MB)
+                if (file.size && file.size > 5 * 1024 * 1024) {
+                    Alert.alert('File too large', 'Please upload a ZIP file smaller than 5MB.');
+                    return;
+                }
+                // Use fileCopyUri if available (because copyTo: 'cachesDirectory' was used)
+                const finalFile = {
+                    ...file,
+                    uri: file.fileCopyUri || file.uri
+                };
+                setZipFile(finalFile);
             }
         } catch (error) {
             if (!DocumentPicker.isCancel(error)) {
                 console.error('Document picker error:', error);
+                Alert.alert('Error', 'Failed to pick file.');
             }
-        }
-    };
-
-    const handleTakeSelfie = async () => {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            Alert.alert('Permission Denied', 'Camera permission is required to take a selfie.');
-            return;
-        }
-
-        try {
-            const result = await launchCamera({
-                ...commonOptions,
-                cameraType: 'front',
-            } as CameraOptions);
-            if (result.assets && result.assets[0]) {
-                setSelfieFile(result.assets[0]);
-            }
-        } catch (error) {
-            console.error('Selfie camera error:', error);
         }
     };
 
     const handleVerify = async () => {
-        if (!aadhaarFile) {
-            Alert.alert('Missing Requirement', 'Please upload your Aadhaar card.');
+        if (!zipFile) {
+            Alert.alert('Missing Requirement', 'Please upload your Offline Aadhaar XML ZIP file.');
             return;
         }
-        if (!selfieFile) {
-            Alert.alert('Missing Requirement', 'Please take a selfie to verify your identity.');
+        if (!shareCode || shareCode.length !== 4) {
+            Alert.alert('Invalid Input', 'Please enter the 4-digit Share Code you set when downloading the ZIP.');
             return;
         }
 
@@ -142,28 +73,24 @@ const VerificationScreen = ({ navigation }: any) => {
         try {
             const formData = new FormData();
 
-            // Append Aadhaar
-            formData.append('aadhaar', {
-                uri: aadhaarFile.uri,
-                type: aadhaarFile.type || 'image/jpeg',
-                name: aadhaarFile.fileName || aadhaarFile.name || 'aadhaar.jpg',
+            // Append ZIP File
+            formData.append('aadhaar_zip', {
+                uri: zipFile.uri,
+                type: zipFile.type || 'application/zip',
+                name: zipFile.name || 'offline_aadhaar.zip',
             } as any);
 
-            // Append Selfie
-            formData.append('selfie', {
-                uri: selfieFile.uri,
-                type: selfieFile.type || 'image/jpeg',
-                name: selfieFile.fileName || selfieFile.name || 'selfie.jpg',
-            } as any);
+            // Append Share Code
+            formData.append('share_code', shareCode);
 
             const token = await AsyncStorage.getItem('access_token');
-            const response = await fetch(`${api.defaults.baseURL}/profile/verify-aadhaar`, {
+            const response = await fetch(`${api.defaults.baseURL}/profile/verify-aadhaar/verify-offline`, {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    // 'Content-Type': 'multipart/form-data', // Do NOT set this for fetch either
+                    // 'Content-Type': 'multipart/form-data', // Let fetch handle boundary
                 },
             });
 
@@ -173,50 +100,41 @@ const VerificationScreen = ({ navigation }: any) => {
                 throw new Error(responseData.message || 'Verification failed');
             }
 
+            // Success
             Alert.alert(
                 'Verification Successful',
-                `Your identity has been verified!\n\nName: ${responseData.data.name}\nDOB: ${responseData.data.dob}`,
+                `Your identity has been verified via Offline XML!\n\nName: ${responseData.data?.full_name || 'Verified User'}`,
                 [
                     {
                         text: 'Great!',
                         onPress: () => {
-                            updateUser({ verification_status: 'VERIFIED' });
+                            // Update local context
+                            updateUser({
+                                verification_status: 'VERIFIED',
+                                provider: {
+                                    ...responseData.data,
+                                    is_verified: true,
+                                    // If backend returns photo, we might want to refresh profile query
+                                }
+                            });
                             navigation.goBack();
                         },
                     },
                 ]
             );
+
         } catch (error: any) {
-            console.error('Verification Error:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to verify. Please try again.';
-            Alert.alert('Verification Failed', errorMessage);
+            console.error('Offline Verification Error:', error);
+            const msg = error.message || 'Failed to verify. Please try again.';
+            Alert.alert('Verification Failed', msg);
         } finally {
             setLoading(false);
         }
     };
 
-    const renderPreview = (file: any, label: string, onClear: () => void) => (
-        <View style={styles.previewCard}>
-            <View style={styles.previewHeader}>
-                <Text style={styles.previewLabel}>{label}</Text>
-                <TouchableOpacity onPress={onClear}>
-                    <Icon name="x" size={20} color={COLORS.textSecondary} />
-                </TouchableOpacity>
-            </View>
-            {file.type?.startsWith('image') ? (
-                <Image source={{ uri: file.uri }} style={styles.previewImage} />
-            ) : (
-                <View style={styles.docPreview}>
-                    <Icon name="file-text" size={40} color={COLORS.secondary} />
-                    <Text style={styles.docName} numberOfLines={1}>{file.fileName || file.name}</Text>
-                </View>
-            )}
-            <View style={styles.successBadge}>
-                <Icon name="check-circle" size={14} color={COLORS.secondary} />
-                <Text style={styles.successText}>Ready to upload</Text>
-            </View>
-        </View>
-    );
+    const openUidaiWebsite = () => {
+        Linking.openURL('https://myaadhaar.uidai.gov.in/');
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -227,79 +145,104 @@ const VerificationScreen = ({ navigation }: any) => {
                 <Text style={TYPOGRAPHY.h2}>Verify Identity</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.infoCard}>
-                    <Icon name="shield" size={40} color={COLORS.primary} />
-                    <Text style={styles.infoText}>
-                        Complete these 2 steps to verify your account. Your data is secure.
-                    </Text>
-                </View>
-
-                {/* Step 1: Aadhaar */}
-                <View style={styles.stepContainer}>
-                    <View style={styles.stepHeader}>
-                        <View style={styles.stepNumber}>
-                            <Text style={styles.stepNumberText}>1</Text>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.content}>
+                    <View style={styles.infoCard}>
+                        <Icon name="shield" size={40} color={COLORS.primary} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.infoTitle}>Offline XML Verification</Text>
+                            <Text style={styles.infoText}>
+                                Secure, paperless verification using your Aadhaar XML ZIP file. No OTP required here.
+                            </Text>
                         </View>
-                        <Text style={styles.stepTitle}>Upload Aadhaar Card</Text>
                     </View>
 
-                    {!aadhaarFile ? (
-                        <View style={styles.uploadOptions}>
-                            <TouchableOpacity style={styles.optionButton} onPress={handleAadhaarCamera}>
-                                <Icon name="camera" size={20} color={COLORS.primary} />
-                                <Text style={styles.optionText}>Camera</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.optionButton} onPress={handleAadhaarGallery}>
-                                <Icon name="image" size={20} color={COLORS.primary} />
-                                <Text style={styles.optionText}>Gallery</Text>
-                            </TouchableOpacity>
+                    {/* Instructions */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>How to get your XML?</Text>
+                        <View style={styles.instructionStep}>
+                            <Text style={styles.stepNum}>1.</Text>
+                            <Text style={styles.stepText}>Go to UIDAI website (Paperless Offline e-KYC).</Text>
                         </View>
-                    ) : (
-                        renderPreview(aadhaarFile, 'Aadhaar Card', () => setAadhaarFile(null))
-                    )}
-                </View>
-
-                {/* Step 2: Selfie */}
-                <View style={styles.stepContainer}>
-                    <View style={styles.stepHeader}>
-                        <View style={styles.stepNumber}>
-                            <Text style={styles.stepNumberText}>2</Text>
+                        <View style={styles.instructionStep}>
+                            <Text style={styles.stepNum}>2.</Text>
+                            <Text style={styles.stepText}>Login and download the XML ZIP file.</Text>
                         </View>
-                        <Text style={styles.stepTitle}>Take a Selfie</Text>
-                    </View>
-                    <Text style={styles.stepDesc}>
-                        Take a clear photo of yourself to confirm it's you.
-                    </Text>
+                        <View style={styles.instructionStep}>
+                            <Text style={styles.stepNum}>3.</Text>
+                            <Text style={styles.stepText}>Create a 4-digit Share Code (e.g., 1234).</Text>
+                        </View>
 
-                    {!selfieFile ? (
-                        <TouchableOpacity style={styles.selfieButton} onPress={handleTakeSelfie}>
-                            <Icon name="camera" size={24} color={COLORS.white} />
-                            <Text style={styles.selfieButtonText}>Take Selfie</Text>
+                        <TouchableOpacity style={styles.linkButton} onPress={openUidaiWebsite}>
+                            <Text style={styles.linkText}>Visit UIDAI Website</Text>
+                            <Icon name="external-link" size={16} color={COLORS.primary} />
                         </TouchableOpacity>
-                    ) : (
-                        renderPreview(selfieFile, 'Your Selfie', () => setSelfieFile(null))
-                    )}
-                </View>
+                    </View>
 
-                <TouchableOpacity
-                    style={[
-                        styles.verifyButton,
-                        (!aadhaarFile || !selfieFile || loading) && styles.verifyButtonDisabled
-                    ]}
-                    onPress={handleVerify}
-                    disabled={!aadhaarFile || !selfieFile || loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color={COLORS.white} />
-                    ) : (
-                        <>
-                            <Icon name="shield-check" size={20} color={COLORS.white} />
-                            <Text style={styles.verifyButtonText}>Submit Verification</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
-            </ScrollView>
+                    {/* Step 1: Upload ZIP */}
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>1. Upload ZIP File</Text>
+
+                        {!zipFile ? (
+                            <TouchableOpacity style={styles.uploadBox} onPress={handlePickZip}>
+                                <Icon name="upload-cloud" size={32} color={COLORS.primary} />
+                                <Text style={styles.uploadText}>Tap to select .zip file</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={styles.filePreview}>
+                                <View style={styles.fileIcon}>
+                                    <Icon name="file-text" size={24} color={COLORS.white} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.fileName} numberOfLines={1}>{zipFile.name}</Text>
+                                    <Text style={styles.fileSize}>{(zipFile.size / 1024).toFixed(1)} KB</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setZipFile(null)} style={styles.removeBtn}>
+                                    <Icon name="x" size={20} color={COLORS.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Step 2: Share Code */}
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>2. Enter Share Code</Text>
+                        <Text style={styles.subLabel}>The 4-digit code you set when downloading the file.</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. 1234"
+                            placeholderTextColor={COLORS.textSecondary}
+                            keyboardType="numeric"
+                            maxLength={4}
+                            value={shareCode}
+                            onChangeText={setShareCode}
+                            secureTextEntry
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.verifyButton,
+                            (!zipFile || shareCode.length !== 4 || loading) && styles.verifyButtonDisabled
+                        ]}
+                        onPress={handleVerify}
+                        disabled={!zipFile || shareCode.length !== 4 || loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={COLORS.white} />
+                        ) : (
+                            <>
+                                <Icon name="check-circle" size={20} color={COLORS.white} />
+                                <Text style={styles.verifyButtonText}>Verify & Submit</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
@@ -322,140 +265,130 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: SPACING.lg,
-        paddingBottom: SPACING.xxl,
     },
     infoCard: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         backgroundColor: '#EEF2FF',
         padding: SPACING.md,
         borderRadius: 12,
         marginBottom: SPACING.xl,
         gap: SPACING.md,
     },
+    infoTitle: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.primary,
+        marginBottom: 2,
+    },
     infoText: {
-        ...TYPOGRAPHY.bodySecondary,
-        flex: 1,
-        color: COLORS.text,
-    },
-    stepContainer: {
-        backgroundColor: COLORS.surface,
-        padding: SPACING.lg,
-        borderRadius: 16,
-        marginBottom: SPACING.lg,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.small,
-    },
-    stepHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: SPACING.md,
-    },
-    stepNumber: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: COLORS.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: SPACING.md,
-    },
-    stepNumberText: {
-        color: COLORS.white,
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    stepTitle: {
-        ...TYPOGRAPHY.h3,
-        fontSize: 18,
-    },
-    stepDesc: {
         ...TYPOGRAPHY.caption,
-        color: COLORS.textSecondary,
-        marginBottom: SPACING.md,
+        color: COLORS.text,
+        lineHeight: 18,
     },
-    uploadOptions: {
-        flexDirection: 'row',
-        gap: SPACING.md,
-    },
-    optionButton: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
+    section: {
+        marginBottom: SPACING.xl,
+        backgroundColor: COLORS.surface,
         padding: SPACING.md,
-        backgroundColor: COLORS.background,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: COLORS.border,
+    },
+    sectionTitle: {
+        ...TYPOGRAPHY.h4,
+        marginBottom: SPACING.sm,
+    },
+    instructionStep: {
+        flexDirection: 'row',
+        marginBottom: 4,
         gap: 8,
     },
-    optionText: {
-        ...TYPOGRAPHY.caption,
-        fontWeight: '600',
+    stepNum: {
+        fontWeight: 'bold',
+        color: COLORS.primary,
     },
-    selfieButton: {
+    stepText: {
+        ...TYPOGRAPHY.bodySecondary,
+        color: COLORS.textSecondary,
+        flex: 1,
+    },
+    linkButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.text,
-        padding: SPACING.md,
-        borderRadius: 12,
-        gap: SPACING.sm,
+        marginTop: SPACING.md,
+        gap: 6,
     },
-    selfieButtonText: {
+    linkText: {
         ...TYPOGRAPHY.button,
-        color: COLORS.white,
+        color: COLORS.primary,
+        fontSize: 14,
     },
-    previewCard: {
-        backgroundColor: COLORS.background,
-        borderRadius: 12,
-        padding: SPACING.sm,
-        borderWidth: 1,
-        borderColor: COLORS.border,
+    inputContainer: {
+        marginBottom: SPACING.xl,
     },
-    previewHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: SPACING.sm,
-        paddingHorizontal: SPACING.xs,
+    label: {
+        ...TYPOGRAPHY.h4,
+        marginBottom: SPACING.xs,
     },
-    previewLabel: {
+    subLabel: {
         ...TYPOGRAPHY.caption,
-        fontWeight: '600',
+        color: COLORS.textSecondary,
+        marginBottom: SPACING.sm,
+    },
+    uploadBox: {
+        height: 120,
+        borderWidth: 2,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        gap: 8,
+    },
+    uploadText: {
+        ...TYPOGRAPHY.bodySecondary,
         color: COLORS.textSecondary,
     },
-    previewImage: {
-        width: '100%',
-        height: 180,
-        borderRadius: 8,
-        marginBottom: SPACING.sm,
-    },
-    docPreview: {
-        width: '100%',
-        height: 100,
-        backgroundColor: '#F3F4F6',
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: SPACING.sm,
-    },
-    docName: {
-        ...TYPOGRAPHY.caption,
-        marginTop: SPACING.sm,
-        maxWidth: '90%',
-    },
-    successBadge: {
+    filePreview: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
+        backgroundColor: COLORS.surface,
+        padding: SPACING.md,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.success,
+        gap: SPACING.md,
     },
-    successText: {
-        fontSize: 12,
-        color: COLORS.secondary,
+    fileIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.success,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fileName: {
+        ...TYPOGRAPHY.body,
         fontWeight: '600',
+    },
+    fileSize: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textSecondary,
+    },
+    removeBtn: {
+        padding: 4,
+    },
+    input: {
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 12,
+        padding: SPACING.md,
+        fontSize: 18,
+        color: COLORS.text,
+        letterSpacing: 2,
+        textAlign: 'center',
+        fontWeight: 'bold',
     },
     verifyButton: {
         backgroundColor: COLORS.primary,
@@ -465,6 +398,7 @@ const styles = StyleSheet.create({
         padding: SPACING.md,
         borderRadius: 12,
         marginTop: SPACING.sm,
+        height: 50,
         ...SHADOWS.medium,
     },
     verifyButtonDisabled: {
@@ -473,7 +407,9 @@ const styles = StyleSheet.create({
     },
     verifyButtonText: {
         ...TYPOGRAPHY.button,
+        color: COLORS.white,
         marginLeft: SPACING.sm,
+        fontSize: 16,
     },
 });
 

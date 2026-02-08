@@ -493,6 +493,12 @@ model users {
   grievance_redressal                                  grievance_redressal[]
   forensic_audit_logs                                  forensic_audit_logs[]
   lead_unlocks                                         lead_unlocks[]
+  service_request_reports                              service_request_reports[]
+  service_provider_reports                             service_provider_reports[]
+  provider_tickets_provider                            provider_tickets[]         @relation("provider_tickets_provider")
+  provider_tickets_assigned                            provider_tickets[]         @relation("provider_tickets_assigned")
+  ticket_messages                                      ticket_messages[]
+  ticket_attachments                                   ticket_attachments[]
 
   @@index([role, status], map: "idx_users_role_status")
 }
@@ -655,6 +661,7 @@ model service_providers {
   users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   service_reviews    service_reviews[]
   services           services[]
+  reports            service_provider_reports[]
 
   @@index([category_id])
   @@index([is_active])
@@ -740,6 +747,7 @@ model service_requests {
   lead_unlocks       lead_unlocks[]
   service_categories service_categories      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users              users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reports            service_request_reports[]
 
   @@index([user_id])
   @@index([category_id])
@@ -832,6 +840,36 @@ enum report_reason_enum {
   other
 }
 
+model service_provider_reports {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String             @db.Uuid
+  reported_by       String             @db.Uuid
+  reason            report_reason_enum
+  notes             String?
+  status            report_status_enum @default(pending)
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  service_providers service_providers  @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users              @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([provider_id])
+  @@index([reported_by])
+}
+
+model service_request_reports {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_id       String           @db.Uuid
+  reported_by      String           @db.Uuid
+  reason           report_reason_enum
+  notes            String?
+  status           report_status_enum @default(pending)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  service_requests service_requests @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users            @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([request_id])
+  @@index([reported_by])
+}
+
 enum report_status_enum {
   pending
   reviewed
@@ -891,4 +929,80 @@ enum grievance_status {
   OPEN
   RESOLVED
   ESCALATED
+}
+
+enum ticket_category_enum {
+  payment_dispute
+  account_issue
+  platform_bug
+  policy_question
+  lead_quality
+  verification_issue
+  other
+}
+
+enum ticket_priority_enum {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ticket_status_enum {
+  open
+  in_progress
+  waiting_provider
+  resolved
+  closed
+}
+
+model provider_tickets {
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id     String                  @db.Uuid
+  ticket_number   String                  @unique @db.VarChar(20)
+  category        ticket_category_enum
+  subject         String                  @db.VarChar(255)
+  description     String
+  priority        ticket_priority_enum    @default(medium)
+  status          ticket_status_enum      @default(open)
+  assigned_to     String?                 @db.Uuid
+  created_at      DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                @default(now()) @db.Timestamptz(6)
+  resolved_at     DateTime?               @db.Timestamptz(6)
+  closed_at       DateTime?               @db.Timestamptz(6)
+  users_provider  users                   @relation("provider_tickets_provider", fields: [provider_id], references: [id], onDelete: Cascade)
+  users_assigned  users?                  @relation("provider_tickets_assigned", fields: [assigned_to], references: [id])
+  ticket_messages ticket_messages[]
+  ticket_attachments ticket_attachments[]
+
+  @@index([provider_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+model ticket_messages {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_id       String            @db.Uuid
+  sender_id       String            @db.Uuid
+  message         String
+  is_internal     Boolean           @default(false)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  users           users             @relation(fields: [sender_id], references: [id])
+
+  @@index([ticket_id])
+}
+
+model ticket_attachments {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_id       String            @db.Uuid
+  file_url        String
+  file_name       String?           @db.VarChar(255)
+  file_type       String?           @db.VarChar(50)
+  uploaded_by     String            @db.Uuid
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  users           users             @relation(fields: [uploaded_by], references: [id])
+
+  @@index([ticket_id])
 }

@@ -106,8 +106,16 @@ export class ServicesController {
 
     @UseGuards(JwtAuthGuard)
     @Get('provider-feed')
-    async getProviderFeed(@Req() req) {
-        return this.servicesService.findProviderFeed(req.user.userId);
+    async getProviderFeed(
+        @Req() req,
+        @Query('lat') lat?: string,
+        @Query('lng') lng?: string
+    ) {
+        return this.servicesService.findProviderFeed(
+            req.user.userId,
+            lat ? parseFloat(lat) : undefined,
+            lng ? parseFloat(lng) : undefined
+        );
     }
 
     @UseGuards(JwtAuthGuard)
@@ -126,6 +134,17 @@ export class ServicesController {
     @Post('requests/:id/cancel')
     async cancelRequest(@Req() req, @Param('id') id: string) {
         return this.servicesService.cancelRequest(id, req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('requests/:id/report')
+    async reportRequest(
+        @Req() req,
+        @Param('id') id: string,
+        @Body('reason') reason: string,
+        @Body('notes') notes?: string,
+    ) {
+        return this.servicesService.reportServiceRequest(id, req.user.userId, reason, notes);
     }
 }
 

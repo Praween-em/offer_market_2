@@ -113,4 +113,30 @@ export class NotificationsService implements OnModuleInit {
             where: { user_id: userId },
         });
     }
+
+    async sendTestNotification(fcmToken: string) {
+        const message: admin.messaging.Message = {
+            notification: {
+                title: 'Test Notification',
+                body: 'This is a test notification from the Sahayaq app!',
+            },
+            token: fcmToken,
+            android: {
+                priority: 'high',
+                notification: {
+                    sound: 'default',
+                    channelId: 'default',
+                },
+            },
+        };
+
+        try {
+            const response = await admin.messaging().send(message);
+            console.log('Successfully sent test notification:', response);
+            return { success: true, response };
+        } catch (error) {
+            console.error('Error sending test notification:', error);
+            throw error;
+        }
+    }
 }

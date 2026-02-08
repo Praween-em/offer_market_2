@@ -75,6 +75,7 @@ export class UsersService {
                 user.verification_status = 'VERIFIED';
             }
             (user as any).provider = provider;
+            (user as any).is_service_provider = true;
             delete (user as any).service_providers;
         }
 
@@ -120,6 +121,18 @@ export class UsersService {
         });
     }
 
+    async reportServiceProvider(providerId: string, userId: string, reason: any, notes?: string) {
+        return this.prisma.service_provider_reports.create({
+            data: {
+                provider_id: providerId,
+                reported_by: userId,
+                reason: reason,
+                notes: notes,
+                status: 'pending',
+            },
+        });
+    }
+
     async updateProfile(userId: string, data: {
         display_name?: string;
         business_name?: string;
@@ -130,12 +143,23 @@ export class UsersService {
         experience_years?: number;
         service_area?: string;
     }) {
+        // 0. Check Verification Status
+        const verification = await (this.prisma as any).user_verification.findUnique({
+            where: { user_id: userId },
+            select: { full_name_xml: true, photo_base64: true }
+        });
+
+        const isVerified = !!verification;
+        const finalDisplayName = isVerified ? verification.full_name_xml : data.display_name;
+        // If verified, we keep the verified photo if it exists, otherwise allow update (rare case)
+        const finalProfilePicture = (isVerified && verification.photo_base64) ? verification.photo_base64 : data.profile_picture;
+
         // 1. Update User (Personal Identity)
         await this.prisma.users.update({
             where: { id: userId },
             data: {
-                display_name: data.display_name,
-                profile_picture: data.profile_picture,
+                display_name: finalDisplayName,
+                profile_picture: finalProfilePicture,
             },
         });
 
@@ -156,12 +180,12 @@ export class UsersService {
         await this.prisma.service_providers.updateMany({
             where: { user_id: userId },
             data: {
-                display_name: data.display_name, // Professional name usually matches personal name unless verified
+                display_name: finalDisplayName, // Professional name usually matches personal name unless verified
                 bio: data.bio,
                 experience_years: data.experience_years,
                 service_area: data.service_area,
                 whatsapp_number: data.whatsapp_number,
-                profile_picture: data.profile_picture,
+                profile_picture: finalProfilePicture,
             } as any,
         });
 

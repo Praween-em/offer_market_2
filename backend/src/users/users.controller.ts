@@ -35,6 +35,17 @@ export class UsersController {
     ) {
         return this.usersService.reportBusiness(id, req.user.userId, reason, notes);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('provider/:id/report')
+    reportProvider(
+        @Param('id') id: string,
+        @Request() req: any,
+        @Body('reason') reason: string,
+        @Body('notes') notes?: string,
+    ) {
+        return this.usersService.reportServiceProvider(id, req.user.userId, reason, notes);
+    }
     @UseGuards(JwtAuthGuard)
     @Patch('profile')
     updateProfile(@Request() req: any, @Body() data: any) {

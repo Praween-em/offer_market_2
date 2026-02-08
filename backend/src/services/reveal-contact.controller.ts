@@ -10,12 +10,14 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConsentAuditService } from '../consent-audit/consent-audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('services')
 export class RevealContactController {
     constructor(
         private prisma: PrismaService,
         private consentAudit: ConsentAuditService,
+        private notificationsService: NotificationsService,
     ) { }
 
     /**
@@ -56,7 +58,7 @@ export class RevealContactController {
             const result = await this.prisma.$transaction(async (tx) => {
                 // 1. Get the lead (request) with lock
                 const lead: any = await tx.$queryRaw`
-                    SELECT id, user_id, unlock_count, status
+                    SELECT id, user_id, unlock_count, status, title
                     FROM service_requests
                     WHERE id = ${leadId}::uuid
                     FOR UPDATE
@@ -117,18 +119,50 @@ export class RevealContactController {
                     WHERE id = ${leadId}::uuid
                 `;
 
+                // Get Worker name for notification
+                const worker: any = await tx.$queryRaw`
+                    SELECT display_name FROM users WHERE id = ${workerId}::uuid
+                `;
+
                 return {
                     phone: customer[0].phone,
-                    name: customer[0].display_name,
+                    customerName: customer[0].display_name,
+                    customerId: leadData.user_id,
                     unlockCount: newUnlockCount,
                     status: newStatus,
                     alreadyUnlocked: false,
+                    workerName: worker[0]?.display_name || 'A service provider',
+                    leadTitle: leadData.title,
                 };
             });
 
+            // 7. Send Push Notification if it was a new unlock
+            if (!result.alreadyUnlocked) {
+                try {
+                    await this.notificationsService.sendPushNotification(
+                        result.customerId,
+                        'Service Provider Connected! 🚀',
+                        `${result.workerName} has unlocked your request "${result.leadTitle}" and may contact you soon!`,
+                        {
+                            type: 'LEAD_UNLOCKED',
+                            leadId: leadId,
+                        }
+                    );
+                } catch (notiError) {
+                    console.error('Failed to send lead unlock notification:', notiError);
+                    // Don't fail the request if notification fails
+                }
+            }
+
             return {
                 success: true,
-                data: result,
+                data: {
+                    phone: result.phone,
+                    name: result.customerName,
+                    unlockCount: result.unlockCount,
+                    status: result.status,
+                    alreadyUnlocked: result.alreadyUnlocked,
+                },
                 message: result.alreadyUnlocked ? 'Contact already unlocked' : 'Contact revealed successfully',
             };
         } catch (error) {

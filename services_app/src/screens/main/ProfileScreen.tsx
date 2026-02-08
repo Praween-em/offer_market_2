@@ -19,42 +19,67 @@ const ProfileScreen = ({ navigation }: any) => {
         );
     };
 
+    const isVerified = user?.verification_status === 'VERIFIED' || user?.provider?.is_verified;
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.header}>
+                <View style={[styles.header, isVerified ? styles.verifiedHeader : styles.unverifiedHeader]}>
                     <View style={styles.profileInfo}>
                         <View style={styles.avatarContainer}>
-                            <View style={styles.avatar}>
-                                {user?.provider?.profile_picture ? (
+                            <View style={[styles.avatar, { borderColor: isVerified ? COLORS.secondary : COLORS.error }]}>
+                                {isVerified && user?.user_verification?.photo_base64 ? (
+                                    <Image
+                                        source={{
+                                            uri: user.user_verification.photo_base64.startsWith('data:')
+                                                ? user.user_verification.photo_base64
+                                                : `data:image/jpeg;base64,${user.user_verification.photo_base64}`
+                                        }}
+                                        style={styles.avatarImage}
+                                    />
+                                ) : user?.provider?.profile_picture ? (
                                     <Image
                                         source={{ uri: user.provider.profile_picture }}
                                         style={styles.avatarImage}
                                     />
                                 ) : (
-                                    <Icon name="user" size={32} color={COLORS.primary} />
+                                    <Icon name="user" size={32} color={isVerified ? COLORS.secondary : COLORS.error} />
                                 )}
                             </View>
-                            <TouchableOpacity style={styles.cameraBadge}>
-                                <Icon name="camera" size={12} color={COLORS.white} />
+                            <TouchableOpacity
+                                style={[styles.cameraBadge, { backgroundColor: isVerified ? COLORS.secondary : COLORS.error }]}
+                                onPress={() => navigation.navigate('EditProfile')}
+                                disabled={isVerified}
+                            >
+                                <Icon name={isVerified ? "check" : "camera"} size={12} color={COLORS.white} />
                             </TouchableOpacity>
                         </View>
                         <TouchableOpacity
                             style={styles.nameContainer}
                             onPress={() => navigation.navigate('EditProfile')}
                         >
-                            <Text style={TYPOGRAPHY.h2}>{user?.display_name || 'Service Provider'}</Text>
-                            <View style={styles.statusRow}>
-                                <Text style={TYPOGRAPHY.bodySecondary}>
-                                    {user?.provider?.provider_type || 'Professional'} • {user?.provider?.experience_years || 0} yrs exp
+                            <View style={styles.nameRow}>
+                                <Text style={TYPOGRAPHY.h2} numberOfLines={1}>
+                                    {(isVerified && user?.user_verification?.full_name_xml) ? user.user_verification.full_name_xml : (user?.display_name || 'Service Provider')}
                                 </Text>
-                                {user?.verification_status === 'VERIFIED' && (
+                                {isVerified && (
                                     <View style={styles.verifiedBadge}>
-                                        <Icon name="check-circle" size={14} color={COLORS.secondary} />
+                                        <Icon name="check-circle" size={12} color={COLORS.secondary} />
                                         <Text style={styles.verifiedText}>Verified</Text>
                                     </View>
                                 )}
                             </View>
+                            <View style={styles.categoryRow}>
+                                <View style={styles.categoryBadge}>
+                                    <Icon name="briefcase" size={10} color={COLORS.primary} />
+                                    <Text style={styles.categoryText}>
+                                        {user?.provider?.service_categories?.name || 'Service Provider'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Text style={TYPOGRAPHY.bodySecondary}>
+                                {user?.provider?.provider_type || 'Professional'} • {user?.provider?.experience_years || 0} yrs exp
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -78,38 +103,48 @@ const ProfileScreen = ({ navigation }: any) => {
                     )}
                     <TouchableOpacity
                         style={styles.menuItem}
-                        onPress={() => navigation.navigate('BusinessSettings')}
+                        onPress={() => navigation.navigate('PrivacySecurity')}
                     >
-                        <View style={[styles.menuIcon, { backgroundColor: '#EEF2FF' }]}>
-                            <Icon name="settings" size={20} color={COLORS.primary} />
+                        <View style={[styles.menuIcon, { backgroundColor: '#F0F9FF' }]}>
+                            <Icon name="shield" size={20} color="#0EA5E9" />
                         </View>
-                        <Text style={styles.menuText}>Business Settings</Text>
-                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => navigation.navigate('Notifications')}
-                    >
-                        <View style={[styles.menuIcon, { backgroundColor: '#FEF3C7' }]}>
-                            <Icon name="bell" size={20} color={COLORS.accent} />
+                        <View style={styles.menuTextContainer}>
+                            <Text style={styles.menuText}>Privacy & Security</Text>
+                            <Text style={styles.menuSubtext}>DPDP Act & Data Protection</Text>
                         </View>
-                        <Text style={styles.menuText}>Notifications</Text>
-                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => navigation.navigate('Payments')}
-                    >
-                        <View style={[styles.menuIcon, { backgroundColor: '#ECFDF5' }]}>
-                            <Icon name="credit-card" size={20} color={COLORS.secondary} />
-                        </View>
-                        <Text style={styles.menuText}>Payments & Payouts</Text>
                         <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Support</Text>
+                    <Text style={styles.sectionTitle}>Compliance & Support</Text>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('Support')}
+                    >
+                        <View style={[styles.menuIcon, { backgroundColor: '#EFF6FF' }]}>
+                            <Icon name="life-buoy" size={20} color={COLORS.primary} />
+                        </View>
+                        <View style={styles.menuTextContainer}>
+                            <Text style={styles.menuText}>Support & Grievances</Text>
+                            <Text style={styles.menuSubtext}>Raise tickets & track issues</Text>
+                        </View>
+                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('Nominee')}
+                    >
+                        <View style={[styles.menuIcon, { backgroundColor: '#F0F9FF' }]}>
+                            <Icon name="users" size={20} color="#0EA5E9" />
+                        </View>
+                        <View style={styles.menuTextContainer}>
+                            <Text style={styles.menuText}>Manage Nominee</Text>
+                            <Text style={styles.menuSubtext}>DPDP Act Compliance Section 10</Text>
+                        </View>
+                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.menuItem}
                         onPress={() => navigation.navigate('HelpCenter')}
@@ -124,10 +159,20 @@ const ProfileScreen = ({ navigation }: any) => {
                         style={styles.menuItem}
                         onPress={() => navigation.navigate('PrivacyPolicy')}
                     >
-                        <View style={[styles.menuIcon, { backgroundColor: '#FEE2E2' }]}>
-                            <Icon name="shield" size={20} color={COLORS.error} />
+                        <View style={[styles.menuIcon, { backgroundColor: '#F8FAFC' }]}>
+                            <Icon name="file-text" size={20} color={COLORS.textSecondary} />
                         </View>
                         <Text style={styles.menuText}>Privacy Policy</Text>
+                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('About')}
+                    >
+                        <View style={[styles.menuIcon, { backgroundColor: '#FFF1F2' }]}>
+                            <Icon name="info" size={20} color="#E11D48" />
+                        </View>
+                        <Text style={styles.menuText}>About Sahayaq</Text>
                         <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                 </View>
@@ -157,6 +202,16 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.border,
         ...SHADOWS.small,
+    },
+    verifiedHeader: {
+        backgroundColor: '#ECFDF5',
+        borderColor: '#10B981',
+        borderWidth: 1.5,
+    },
+    unverifiedHeader: {
+        backgroundColor: '#FEF2F2',
+        borderColor: COLORS.error,
+        borderWidth: 1.5,
     },
     profileInfo: {
         flexDirection: 'row',
@@ -198,6 +253,13 @@ const styles = StyleSheet.create({
     nameContainer: {
         flex: 1,
     },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        marginBottom: 2,
+    },
     statusRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -216,6 +278,28 @@ const styles = StyleSheet.create({
         ...TYPOGRAPHY.caption,
         color: COLORS.secondary,
         fontWeight: '600',
+    },
+    categoryRow: {
+        marginBottom: 4,
+    },
+    categoryBadge: {
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: `${COLORS.primary}10`,
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: `${COLORS.primary}30`,
+    },
+    categoryText: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.primary,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        fontSize: 10,
     },
     section: {
         marginBottom: SPACING.lg,
