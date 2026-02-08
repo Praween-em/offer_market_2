@@ -21,6 +21,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ConsentAuditModule } from './consent-audit/consent-audit.module';
 import { LocationModule } from './location/location.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { LocationModule } from './location/location.module';
     AnalyticsModule,
     ConsentAuditModule,
     LocationModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

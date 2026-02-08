@@ -10,6 +10,18 @@ export class ServicesService {
         private locationService: LocationService,
     ) { }
 
+    async reportServiceRequest(requestId: string, reportedBy: string, reason: any, notes?: string) {
+        return this.prisma.service_request_reports.create({
+            data: {
+                request_id: requestId,
+                reported_by: reportedBy,
+                reason: reason,
+                notes: notes,
+                status: 'pending',
+            },
+        });
+    }
+
     async findAllCategories() {
         // Return ALL active categories (both parent and subcategories) as a flat list
         // This allows frontend to display all services individually
@@ -324,7 +336,7 @@ export class ServicesService {
         });
     }
 
-    async findProviderFeed(userId: string) {
+    async findProviderFeed(userId: string, lat?: number, lng?: number) {
         // 1. Get the provider's category and location
         const provider: any = await this.prisma.service_providers.findUnique({
             where: { user_id: userId },
@@ -336,6 +348,10 @@ export class ServicesService {
         });
 
         if (!provider) return [];
+
+        // Override provider location with live coordinates if provided
+        const effectiveLat = lat !== undefined ? lat : (provider.latitude ? Number(provider.latitude) : null);
+        const effectiveLng = lng !== undefined ? lng : (provider.longitude ? Number(provider.longitude) : null);
 
         // 2. Fetch all related category IDs (self + all descendants)
         const subCategories = await this.prisma.service_categories.findMany({
@@ -366,9 +382,9 @@ export class ServicesService {
             take: 200 // Get more initially, will filter by distance
         });
 
-        // 4. Filter by 12km radius if provider has location
+        // 4. Filter by 12km radius if location is available (live or profile)
         let filteredRequests = requests;
-        if ((provider as any).latitude && (provider as any).longitude) {
+        if (effectiveLat && effectiveLng) {
             const RADIUS_KM = 12;
             filteredRequests = requests.filter(request => {
                 // If request has no location, include it (backward compatibility)
@@ -377,8 +393,8 @@ export class ServicesService {
                 }
 
                 return this.locationService.isWithinRadius(
-                    Number((provider as any).latitude),
-                    Number((provider as any).longitude),
+                    Number(effectiveLat),
+                    Number(effectiveLng),
                     Number((request as any).latitude),
                     Number((request as any).longitude),
                     RADIUS_KM
@@ -390,8 +406,8 @@ export class ServicesService {
                 let distance: number | null = null;
                 if ((request as any).latitude && (request as any).longitude) {
                     distance = this.locationService.calculateDistance(
-                        Number((provider as any).latitude),
-                        Number((provider as any).longitude),
+                        Number(effectiveLat),
+                        Number(effectiveLng),
                         Number((request as any).latitude),
                         Number((request as any).longitude)
                     );
