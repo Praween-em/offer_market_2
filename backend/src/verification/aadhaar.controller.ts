@@ -121,21 +121,26 @@ export class AadhaarController {
         @UploadedFile() file: Express.Multer.File,
         @Body('share_code') shareCode: string
     ) {
-        if (!file || !shareCode) {
-            throw new BadRequestException('Aadhaar ZIP file and Share Code are required');
+        try {
+            if (!file || !shareCode) {
+                throw new BadRequestException('Aadhaar ZIP file and Share Code are required');
+            }
+
+            // 1. Verify XML Demographics and Signature
+            const demographics = await this.offlineService.verifyOfflineXml(file.buffer, shareCode);
+
+            // 2. Map offline data to OKYC verification flow
+            // The photo comes in the XML as base64 string
+            return await this.usersService.verifyOkyc(req.user.userId, {
+                aadhaar_number: demographics.referenceId, // Reference ID acts as a token for the session
+                full_name: demographics.name,
+                photo_base64: demographics.photo,
+                isOffline: true,
+                demographics: demographics
+            });
+        } catch (error) {
+            console.error('Offline Verification Fatal Error:', error);
+            throw new BadRequestException(error.message || 'Internal processing error during verification');
         }
-
-        // 1. Verify XML Demographics and Signature
-        const demographics = await this.offlineService.verifyOfflineXml(file.buffer, shareCode);
-
-        // 2. Map offline data to OKYC verification flow
-        // The photo comes in the XML as base64 string
-        return this.usersService.verifyOkyc(req.user.userId, {
-            aadhaar_number: demographics.referenceId, // Reference ID acts as a token for the session
-            full_name: demographics.name,
-            photo_base64: demographics.photo,
-            isOffline: true,
-            demographics: demographics
-        });
     }
 }
