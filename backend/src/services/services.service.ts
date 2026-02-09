@@ -39,7 +39,7 @@ export class ServicesService {
         });
     }
 
-    async findAllProviders(categoryId?: string, search?: string, lat?: number, lng?: number, radiusKm: number = 25) {
+    async findAllProviders(categoryId?: string, search?: string, lat?: number, lng?: number, radiusKm: number = 12) {
         let categoryIds: string[] | undefined;
 
         if (categoryId) {
@@ -142,7 +142,7 @@ export class ServicesService {
             // Filter out providers beyond radiusKm if specified
             if (radiusKm > 0) {
                 results = results.filter(provider => {
-                    if (provider.distance_km === null) return true; // Keep if no location
+                    if (provider.distance_km === null) return false; // Hide if no location when radius is set
                     return provider.distance_km <= radiusKm;
                 });
             }
