@@ -1,5 +1,5 @@
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationService } from '../location/location.service';
 
@@ -166,8 +166,8 @@ export class ServicesService {
     }
 
 
-    async findOneProvider(id: string) {
-        return this.prisma.service_providers.findUnique({
+    async findOneProvider(id: string, userId?: string) {
+        const provider = await this.prisma.service_providers.findUnique({
             where: { id },
             include: {
                 users: {
@@ -184,6 +184,60 @@ export class ServicesService {
                     },
                 },
                 service_portfolios: true,
+            },
+        });
+
+        if (!provider) return null;
+
+        // Check if the user has unlocked this provider
+        let isUnlocked = false;
+        if (userId) {
+            // If the user IS the provider, it's unlocked
+            if (provider.user_id === userId) {
+                isUnlocked = true;
+            } else {
+                const unlock = await this.prisma.provider_unlocks.findUnique({
+                    where: {
+                        user_id_provider_id: {
+                            user_id: userId,
+                            provider_id: id,
+                        },
+                    },
+                });
+                isUnlocked = !!unlock;
+            }
+        }
+
+        // Mask phone number if not unlocked
+        const phone = (isUnlocked && provider.users?.phone)
+            ? provider.users.phone
+            : provider.users?.phone
+                ? `${provider.users.phone.substring(0, 3)}XXXXXX${provider.users.phone.slice(-1)}`
+                : null;
+
+        return {
+            ...provider,
+            phone_number: phone,
+            isUnlocked,
+        };
+    }
+
+    async unlockProvider(providerId: string, userId: string, adToken: string) {
+        return this.prisma.provider_unlocks.upsert({
+            where: {
+                user_id_provider_id: {
+                    user_id: userId,
+                    provider_id: providerId,
+                },
+            },
+            update: {
+                ad_completion_token: adToken,
+                unlocked_at: new Date(),
+            },
+            create: {
+                user_id: userId,
+                provider_id: providerId,
+                ad_completion_token: adToken,
             },
         });
     }
@@ -300,6 +354,58 @@ export class ServicesService {
                 media: images ? {
                     create: images.map(url => ({ image_url: url }))
                 } : undefined
+            },
+            include: {
+                media: true,
+                service_categories: true
+            }
+        });
+    }
+
+    async updateServiceRequest(requestId: string, userId: string, data: {
+        categoryId?: string;
+        title?: string;
+        description?: string;
+        images?: string[];
+        latitude?: number;
+        longitude?: number;
+    }) {
+        // Ensure the request belongs to the user
+        const existing = await this.prisma.service_requests.findUnique({
+            where: { id: requestId },
+            select: { user_id: true, latitude: true, longitude: true }
+        });
+
+        if (!existing || existing.user_id !== userId) {
+            throw new BadRequestException('Request not found or not authorized');
+        }
+
+        let locationName: string | null = null;
+        if ((data.latitude !== undefined && Number(data.latitude) !== Number(existing.latitude)) ||
+            (data.longitude !== undefined && Number(data.longitude) !== Number(existing.longitude))) {
+            if (data.latitude && data.longitude) {
+                locationName = await this.locationService.reverseGeocode(
+                    data.latitude,
+                    data.longitude,
+                );
+            }
+        }
+
+        const { images, categoryId, ...remainingData } = data;
+
+        return this.prisma.service_requests.update({
+            where: { id: requestId },
+            data: {
+                ...remainingData,
+                location_name: locationName !== null ? locationName : undefined,
+                service_categories: categoryId ? {
+                    connect: { id: categoryId }
+                } : undefined,
+                media: images ? {
+                    deleteMany: {},
+                    create: images.map(url => ({ image_url: url }))
+                } : undefined,
+                updated_at: new Date()
             },
             include: {
                 media: true,

@@ -1,10 +1,14 @@
 import { Controller, Get, Param, Query, Post, Body, Patch, Delete, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('services')
 export class ServicesController {
-    constructor(private readonly servicesService: ServicesService) { }
+    constructor(
+        private readonly servicesService: ServicesService,
+        private readonly jwtService: JwtService,
+    ) { }
 
     @Get('categories')
     findAllCategories() {
@@ -29,8 +33,29 @@ export class ServicesController {
     }
 
     @Get('providers/:id')
-    findOneProvider(@Param('id') id: string) {
-        return this.servicesService.findOneProvider(id);
+    async findOneProvider(@Req() req, @Param('id') id: string) {
+        const authHeader = req.headers.authorization;
+        let userId: string | undefined;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const decoded = this.jwtService.decode(token) as any;
+                userId = decoded?.userId;
+            } catch (e) { }
+        }
+
+        return this.servicesService.findOneProvider(id, userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('providers/:id/unlock')
+    async unlockProvider(
+        @Req() req,
+        @Param('id') id: string,
+        @Body('adToken') adToken: string
+    ) {
+        if (!adToken) throw new BadRequestException('Ad completion token is required');
+        return this.servicesService.unlockProvider(id, req.user.userId, adToken);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -91,6 +116,12 @@ export class ServicesController {
             throw new BadRequestException('Category and Title are required');
         }
         return this.servicesService.createServiceRequest(req.user.userId, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('requests/:id')
+    async updateServiceRequest(@Req() req, @Param('id') id: string, @Body() data: any) {
+        return this.servicesService.updateServiceRequest(id, req.user.userId, data);
     }
 
     @Get('requests')

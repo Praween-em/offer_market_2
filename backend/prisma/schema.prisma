@@ -499,6 +499,7 @@ model users {
   provider_tickets_assigned                            provider_tickets[]         @relation("provider_tickets_assigned")
   ticket_messages                                      ticket_messages[]
   ticket_attachments                                   ticket_attachments[]
+  provider_unlocks                                     provider_unlocks[]
 
   @@index([role, status], map: "idx_users_role_status")
 }
@@ -662,6 +663,7 @@ model service_providers {
   service_reviews    service_reviews[]
   services           services[]
   reports            service_provider_reports[]
+  provider_unlocks   provider_unlocks[]
 
   @@index([category_id])
   @@index([is_active])
@@ -728,6 +730,18 @@ model service_leads {
 
   @@index([provider_id])
   @@index([user_id])
+}
+
+model provider_unlocks {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String   @db.Uuid
+  provider_id         String   @db.Uuid
+  ad_completion_token String?
+  unlocked_at         DateTime @default(now()) @db.Timestamptz(6)
+  users               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  service_providers   service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, provider_id])
 }
 
 model service_requests {
