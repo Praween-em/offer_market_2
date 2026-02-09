@@ -40,7 +40,7 @@ export class ServicesController {
             try {
                 const token = authHeader.split(' ')[1];
                 const decoded = this.jwtService.decode(token) as any;
-                userId = decoded?.userId;
+                userId = decoded?.userId || decoded?.sub;
             } catch (e) { }
         }
 

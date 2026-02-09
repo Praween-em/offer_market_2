@@ -208,16 +208,20 @@ export class ServicesService {
             }
         }
 
-        // Mask phone number if not unlocked
-        const phone = (isUnlocked && provider.users?.phone)
-            ? provider.users.phone
-            : provider.users?.phone
-                ? `${provider.users.phone.substring(0, 3)}XXXXXX${provider.users.phone.slice(-1)}`
-                : null;
+        // Helper to mask numbers
+        const maskNum = (num: string | null) => {
+            if (!num) return null;
+            if (isUnlocked) return num;
+            return `${num.substring(0, 3)}XXXXXX${num.slice(-1)}`;
+        };
+
+        const phone = maskNum(provider.phone_number || provider.users?.phone);
+        const whatsapp = maskNum(provider.whatsapp_number);
 
         return {
             ...provider,
             phone_number: phone,
+            whatsapp_number: whatsapp,
             isUnlocked,
         };
     }
