@@ -26,6 +26,27 @@ async function bootstrap() {
       await prisma.$executeRawUnsafe('ALTER TABLE "businesses" ADD COLUMN IF NOT EXISTS "website" TEXT;');
       await prisma.$executeRawUnsafe('ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "affiliate_url" TEXT;');
 
+      // Create Notification & Unlock Tables
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "user_device_tokens" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "fcm_token" TEXT NOT NULL UNIQUE,
+          "platform" VARCHAR(16) NOT NULL DEFAULT 'android',
+          "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "provider_unlocks" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "provider_id" UUID NOT NULL REFERENCES "service_providers"("id") ON DELETE CASCADE,
+          "ad_completion_token" TEXT,
+          "unlocked_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
       // Create Wallet Tables if they don't exist
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "user_wallets" (
