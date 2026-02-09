@@ -188,6 +188,44 @@ CREATE TABLE IF NOT EXISTS lead_unlocks (
   UNIQUE(lead_id, worker_id)
 );
 
+-- D. Reporting & Feedback
+DO $$ BEGIN
+    CREATE TYPE report_reason_enum AS ENUM ('fake', 'misleading', 'expired', 'inaccurate', 'spam', 'other');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE report_status_enum AS ENUM ('pending', 'reviewed', 'action_taken');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS service_provider_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider_id UUID NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+  reported_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason report_reason_enum NOT NULL,
+  notes TEXT,
+  status report_status_enum DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS service_request_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+  reported_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason report_reason_enum NOT NULL,
+  notes TEXT,
+  status report_status_enum DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_reports_provider ON service_provider_reports(provider_id);
+CREATE INDEX IF NOT EXISTS idx_provider_reports_reported_by ON service_provider_reports(reported_by);
+CREATE INDEX IF NOT EXISTS idx_request_reports_request ON service_request_reports(request_id);
+CREATE INDEX IF NOT EXISTS idx_request_reports_reported_by ON service_request_reports(reported_by);
+
 -- Fix for existing tables: Update worker_id reference if it points to user_verification
 DO $$ BEGIN
     IF EXISTS (

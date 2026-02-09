@@ -72,14 +72,19 @@ export class AadhaarOfflineService {
                 throw new BadRequestException('Aadhaar XML Signature verification failed. The file may have been tampered with.');
             }
 
-            // 5. Extract Demographics
+            // 5. Extract Demographics (Handling attributes and tags)
+            const poi = uidData.Poi || {};
+            const poiAttr = poi.$ || {};
+            const poa = uidData.Poa || {};
+            const poaAttr = poa.$ || {};
+
             const demographics = {
-                name: uidData.Poi.name,
-                dob: uidData.Poi.dob,
-                gender: uidData.Poi.gender,
-                address: `${uidData.Poa.house}, ${uidData.Poa.street || ''}, ${uidData.Poa.dist}, ${uidData.Poa.state} - ${uidData.Poa.pc}`,
+                name: poiAttr.n || poi.name || poiAttr.name,
+                dob: poiAttr.dob || poi.dob,
+                gender: poiAttr.g || poi.gender || poiAttr.gender,
+                address: `${poaAttr.house || poa.house || ''}, ${poaAttr.street || poa.street || ''}, ${poaAttr.dist || poa.dist || ''}, ${poaAttr.state || poa.state || ''} - ${poaAttr.pc || poa.pc || ''}`,
                 photo: uidData.Pht, // Base64 string of the user photo
-                referenceId: result.OfflinePaperlessKyc.$.referenceId
+                referenceId: (result.OfflinePaperlessKyc.$ || {}).referenceId
             };
 
             this.logger.log(`Aadhaar verified successfully for: ${demographics.name}`);
