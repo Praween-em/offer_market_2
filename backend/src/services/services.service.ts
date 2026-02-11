@@ -463,15 +463,50 @@ export class ServicesService {
         const effectiveLat = lat !== undefined ? lat : (provider.latitude ? Number(provider.latitude) : null);
         const effectiveLng = lng !== undefined ? lng : (provider.longitude ? Number(provider.longitude) : null);
 
-        // 2. Fetch all related category IDs (self + all descendants)
-        const subCategories = await this.prisma.service_categories.findMany({
-            where: { parent_id: provider.category_id },
-            select: { id: true }
+        // 2. Get the provider's category to find its parent
+        const providerCategory = await this.prisma.service_categories.findUnique({
+            where: { id: provider.category_id },
+            select: {
+                id: true,
+                parent_id: true,
+                name: true,
+                keywords: true
+            }
         });
 
-        const categoryIds = [provider.category_id, ...subCategories.map(c => c.id)];
+        if (!providerCategory) return [];
 
-        // 3. Fetch requests for these categories
+        // 3. Determine the category family to match
+        let categoryIds: string[] = [];
+
+        if (providerCategory.parent_id) {
+            // Provider has a parent category (e.g., "Bike Mechanic" under "Vehicle Services")
+            // Fetch parent and ALL its children (siblings)
+            const siblings = await this.prisma.service_categories.findMany({
+                where: {
+                    OR: [
+                        { id: providerCategory.parent_id }, // Include parent itself
+                        { parent_id: providerCategory.parent_id } // Include all siblings
+                    ]
+                },
+                select: { id: true }
+            });
+            categoryIds = siblings.map(c => c.id);
+        } else {
+            // Provider's category IS a parent (e.g., "Electricians")
+            // Include self and all children
+            const children = await this.prisma.service_categories.findMany({
+                where: { parent_id: providerCategory.id },
+                select: { id: true }
+            });
+            categoryIds = [providerCategory.id, ...children.map(c => c.id)];
+        }
+
+        // 4. Build keyword list for matching
+        const providerKeywords = providerCategory.keywords?.toLowerCase().split(',').map(k => k.trim()) || [];
+        providerKeywords.push(providerCategory.name.toLowerCase());
+
+        // 5. Fetch requests for these categories
         let requests: any[] = await this.prisma.service_requests.findMany({
             where: {
                 category_id: { in: categoryIds },
@@ -492,7 +527,40 @@ export class ServicesService {
             take: 200 // Get more initially, will filter by distance
         });
 
-        // 4. Filter by 12km radius if location is available (live or profile)
+        // 6. Also fetch requests that match keywords (even if category doesn't match)
+        const keywordRequests: any[] = await this.prisma.service_requests.findMany({
+            where: {
+                status: 'pending',
+                OR: providerKeywords.flatMap(keyword => [
+                    { title: { contains: keyword, mode: 'insensitive' } },
+                    { description: { contains: keyword, mode: 'insensitive' } }
+                ])
+            },
+            include: {
+                media: true,
+                service_categories: true,
+                users: {
+                    select: {
+                        display_name: true,
+                        profile_picture: true,
+                        phone: true
+                    }
+                }
+            },
+            orderBy: { created_at: 'desc' },
+            take: 50
+        });
+
+        // 7. Merge and deduplicate requests
+        const requestMap = new Map();
+        [...requests, ...keywordRequests].forEach(req => {
+            if (!requestMap.has(req.id)) {
+                requestMap.set(req.id, req);
+            }
+        });
+        requests = Array.from(requestMap.values());
+
+        // 8. Filter by 12km radius if location is available (live or profile)
         let filteredRequests = requests;
         if (effectiveLat && effectiveLng) {
             const RADIUS_KM = 12;
@@ -511,7 +579,7 @@ export class ServicesService {
                 );
             });
 
-            // 5. Add distance to each request
+            // 9. Add distance to each request
             filteredRequests = filteredRequests.map(request => {
                 let distance: number | null = null;
                 if ((request as any).latitude && (request as any).longitude) {
@@ -632,6 +700,7 @@ export class ServicesService {
         if (obj === null || obj === undefined) return obj;
         if (typeof obj === 'bigint') return Number(obj);
         if (Array.isArray(obj)) return obj.map(item => this.convertBigIntToNumber(item));
+        if (obj instanceof Date || (obj && obj.constructor && obj.constructor.name === 'Decimal')) return obj;
         if (typeof obj === 'object') {
             const newObj = {};
             for (const key in obj) {
