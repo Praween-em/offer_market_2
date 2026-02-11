@@ -13,8 +13,8 @@ export class NotificationsController {
     }
 
     @Post('register-token')
-    async registerToken(@Request() req: any, @Body() body: { fcmToken: string; platform?: string }) {
-        return this.notificationsService.registerToken(req.user.userId, body.fcmToken, body.platform);
+    async registerToken(@Request() req: any, @Body() body: { fcmToken: string; platform?: string; appType?: string }) {
+        return this.notificationsService.registerToken(req.user.userId, body.fcmToken, body.platform, body.appType);
     }
 
     @Post(':id/read')

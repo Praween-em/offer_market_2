@@ -32,17 +32,23 @@ export class NotificationsService implements OnModuleInit {
         }
     }
 
-    async registerToken(userId: string, fcmToken: string, platform: string = 'android') {
+    async registerToken(userId: string, fcmToken: string, platform: string = 'android', appType: string = 'USER') {
         return (this.prisma as any).user_device_tokens.upsert({
             where: { fcm_token: fcmToken },
-            update: { user_id: userId, platform },
-            create: { user_id: userId, fcm_token: fcmToken, platform },
+            update: { user_id: userId, platform, app_type: appType },
+            create: { user_id: userId, fcm_token: fcmToken, platform, app_type: appType },
         });
     }
 
-    async sendPushNotification(userId: string, title: string, body: string, data?: any) {
+    async sendPushNotification(userId: string, title: string, body: string, data?: any, targetApp: 'USER' | 'PROVIDER' | 'BOTH' = 'BOTH') {
+        const whereClause: any = { user_id: userId };
+
+        if (targetApp !== 'BOTH') {
+            whereClause.app_type = targetApp;
+        }
+
         const tokens = await (this.prisma as any).user_device_tokens.findMany({
-            where: { user_id: userId },
+            where: whereClause,
         });
 
         if (tokens.length === 0) return;

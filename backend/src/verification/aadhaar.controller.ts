@@ -115,28 +115,48 @@ export class AadhaarController {
 
     @Post('verify-offline')
     @UseGuards(JwtAuthGuard)
-    @UseInterceptors(FileInterceptor('aadhaar_zip'))
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'aadhaar_zip', maxCount: 1 },
+        { name: 'selfie', maxCount: 1 },
+    ]))
     async verifyOffline(
         @Req() req: any,
-        @UploadedFile() file: Express.Multer.File,
+        @UploadedFiles() files: { aadhaar_zip?: Express.Multer.File[], selfie?: Express.Multer.File[] },
         @Body('share_code') shareCode: string
     ) {
         try {
-            if (!file || !shareCode) {
+            const zipFile = files.aadhaar_zip ? files.aadhaar_zip[0] : null;
+            const selfieFile = files.selfie ? files.selfie[0] : null;
+
+            if (!zipFile || !shareCode) {
                 throw new BadRequestException('Aadhaar ZIP file and Share Code are required');
             }
+            if (!selfieFile) {
+                throw new BadRequestException('Selfie is required for verification');
+            }
 
-            // 1. Verify XML Demographics and Signature
-            const demographics = await this.offlineService.verifyOfflineXml(file.buffer, shareCode);
+            // 1. Upload Selfie to Bunny.net
+            let selfieUrl = '';
+            try {
+                const folder = `verifications/user-${req.user.userId}`;
+                selfieUrl = await this.bunnyService.uploadFile(selfieFile, folder);
+            } catch (error) {
+                console.error('Failed to upload selfie:', error);
+                throw new BadRequestException('Failed to upload selfie image');
+            }
 
-            // 2. Map offline data to OKYC verification flow
+            // 2. Verify XML Demographics and Signature
+            const demographics = await this.offlineService.verifyOfflineXml(zipFile.buffer, shareCode);
+
+            // 3. Map offline data to OKYC verification flow
             // The photo comes in the XML as base64 string
             return await this.usersService.verifyOkyc(req.user.userId, {
                 aadhaar_number: demographics.referenceId, // Reference ID acts as a token for the session
                 full_name: demographics.name,
                 photo_base64: demographics.photo,
                 isOffline: true,
-                demographics: demographics
+                demographics: demographics,
+                profile_picture_url: selfieUrl
             });
         } catch (error) {
             console.error('Offline Verification Fatal Error:', error);

@@ -383,6 +383,7 @@ export class UsersService {
         photo_base64: string;
         isOffline?: boolean;
         demographics?: any;
+        profile_picture_url?: string; // New field for Selfie
     }) {
         // 1. Ensure photo has correct data URI prefix if it's raw base64
         let finalPhoto = data.photo_base64;
@@ -427,6 +428,9 @@ export class UsersService {
         });
 
         // 4. Update the main user status and professional identity
+        // Use selfie (profile_picture_url) if available, otherwise fallback to Aadhaar photo (finalPhoto) unless restricted
+        const finalProfilePic = data.profile_picture_url || finalPhoto;
+
         return this.updateVerificationStatus(userId, {
             status: 'VERIFIED',
             verifiedName: data.full_name,
@@ -436,7 +440,7 @@ export class UsersService {
                 verified_at: new Date().toISOString(),
                 reference_id: data.isOffline ? data.aadhaar_number : undefined
             },
-            profilePictureUrl: finalPhoto
+            profilePictureUrl: finalProfilePic
         });
     }
 }
