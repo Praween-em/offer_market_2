@@ -154,13 +154,17 @@ export class TicketsService {
     }
 
     async addMessage(ticketId: string, senderId: string, addMessageDto: AddMessageDto) {
-        // Verify ticket exists
+        // Verify ticket exists and ownership
         const ticket = await this.prisma.provider_tickets.findUnique({
             where: { id: ticketId },
         });
 
         if (!ticket) {
             throw new NotFoundException('Ticket not found');
+        }
+
+        if (ticket.provider_id !== senderId) {
+            throw new ForbiddenException('You do not have access to this ticket');
         }
 
         const message = await this.prisma.ticket_messages.create({

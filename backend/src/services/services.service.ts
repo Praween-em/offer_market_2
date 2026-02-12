@@ -420,7 +420,12 @@ export class ServicesService {
 
     async findAllRequests(categoryId?: string) {
         return this.prisma.service_requests.findMany({
-            where: categoryId ? { category_id: categoryId } : {},
+            where: {
+                AND: [
+                    categoryId ? { category_id: categoryId } : {},
+                    { status: 'pending' }
+                ]
+            },
             include: {
                 media: true,
                 service_categories: true,
@@ -518,8 +523,8 @@ export class ServicesService {
                 users: {
                     select: {
                         display_name: true,
-                        profile_picture: true,
-                        phone: true
+                        profile_picture: true
+                        // phone hidden until unlocked via reveal-contact
                     }
                 }
             },
@@ -542,8 +547,8 @@ export class ServicesService {
                 users: {
                     select: {
                         display_name: true,
-                        profile_picture: true,
-                        phone: true
+                        profile_picture: true
+                        // phone hidden until unlocked via reveal-contact
                     }
                 }
             },
@@ -612,6 +617,20 @@ export class ServicesService {
     }
 
     async findRequestDetails(requestId: string, providerUserId?: string) {
+        // 1. Check if the provider has already unlocked this lead
+        let hasUnlocked = false;
+        if (providerUserId) {
+            const unlock = await this.prisma.lead_unlocks.findUnique({
+                where: {
+                    limit_three: {
+                        lead_id: requestId,
+                        worker_id: providerUserId
+                    }
+                }
+            });
+            hasUnlocked = !!unlock;
+        }
+
         const request: any = await this.prisma.service_requests.findUnique({
             where: { id: requestId },
             include: {
@@ -625,8 +644,9 @@ export class ServicesService {
                     select: {
                         id: true,
                         display_name: true,
-                        profile_picture: true
-                        // phone hidden until unlocked via reveal-contact
+                        profile_picture: true,
+                        // Include phone only if unlocked
+                        phone: hasUnlocked
                     }
                 }
             }

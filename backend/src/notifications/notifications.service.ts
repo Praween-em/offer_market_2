@@ -107,7 +107,19 @@ export class NotificationsService implements OnModuleInit {
         });
     }
 
-    async markAsRead(notificationId: string) {
+    async markAsRead(notificationId: string, userId: string) {
+        const notification = await this.prisma.notifications.findUnique({
+            where: { id: notificationId },
+        });
+
+        if (!notification) {
+            return null; // Or throw NotFoundException
+        }
+
+        if (notification.user_id !== userId) {
+            return null; // Prevent unauthorized access
+        }
+
         return this.prisma.notifications.update({
             where: { id: notificationId },
             data: { is_read: true },

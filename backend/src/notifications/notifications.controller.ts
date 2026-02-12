@@ -18,8 +18,8 @@ export class NotificationsController {
     }
 
     @Post(':id/read')
-    async markRead(@Param('id') id: string) {
-        return this.notificationsService.markAsRead(id);
+    async markRead(@Request() req: any, @Param('id') id: string) {
+        return this.notificationsService.markAsRead(id, req.user.userId);
     }
 
     @Delete('clear')
