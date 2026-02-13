@@ -22,11 +22,14 @@ export class ServicesService {
         });
     }
 
-    async findAllCategories() {
+    async findAllCategories(providerType?: string) {
         // Return ALL active categories (both parent and subcategories) as a flat list
         // This allows frontend to display all services individually
         return this.prisma.service_categories.findMany({
-            where: { is_active: true },
+            where: {
+                is_active: true,
+                provider_type: providerType ? providerType : undefined
+            },
             include: {
                 parent: {
                     select: {
@@ -260,20 +263,27 @@ export class ServicesService {
         });
     }
 
-    async createService(providerId: string, data: { title: string; categoryId?: string; description?: string; price?: number; priceUnit?: string }) {
+    async createService(providerId: string, data: { title: string; categoryId?: string; description?: string; price?: number; priceUnit?: string; images?: string[] }) {
+        const { images, ...serviceData } = data;
         return this.prisma.services.create({
             data: {
                 provider_id: providerId,
-                category_id: data.categoryId,
-                title: data.title,
-                description: data.description,
-                price: data.price,
-                price_unit: data.priceUnit || 'service',
+                category_id: serviceData.categoryId,
+                title: serviceData.title,
+                description: serviceData.description,
+                price: serviceData.price,
+                price_unit: serviceData.priceUnit || 'service',
+                service_images: images ? {
+                    create: images.map(url => ({ image_url: url }))
+                } : undefined
             },
+            include: {
+                service_images: true
+            }
         });
     }
 
-    async updateService(serviceId: string, providerId: string, data: { title?: string; categoryId?: string; description?: string; price?: number; priceUnit?: string; isActive?: boolean }) {
+    async updateService(serviceId: string, providerId: string, data: { title?: string; categoryId?: string; description?: string; price?: number; priceUnit?: string; isActive?: boolean; images?: string[] }) {
         // Verify ownership
         const service = await this.prisma.services.findFirst({
             where: { id: serviceId, provider_id: providerId }
@@ -289,7 +299,14 @@ export class ServicesService {
                 price: data.price,
                 price_unit: data.priceUnit,
                 is_active: data.isActive,
+                service_images: data.images ? {
+                    deleteMany: {},
+                    create: data.images.map(url => ({ image_url: url }))
+                } : undefined
             },
+            include: {
+                service_images: true
+            }
         });
     }
 

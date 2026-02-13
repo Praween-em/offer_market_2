@@ -11,8 +11,8 @@ export class ServicesController {
     ) { }
 
     @Get('categories')
-    findAllCategories() {
-        return this.servicesService.findAllCategories();
+    findAllCategories(@Query('providerType') providerType?: string) {
+        return this.servicesService.findAllCategories(providerType);
     }
 
     @Get('providers')

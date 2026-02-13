@@ -151,8 +151,8 @@ export class UsersService {
 
         const isVerified = !!verification;
         const finalDisplayName = isVerified ? verification.full_name_xml : data.display_name;
-        // If verified, we keep the verified photo if it exists, otherwise allow update (rare case)
-        const finalProfilePicture = (isVerified && verification.photo_base64) ? verification.photo_base64 : data.profile_picture;
+        // BUG FIX: Do NOT prioritize Aadhar photo over provided profile picture
+        const finalProfilePicture = data.profile_picture || ((isVerified && verification.photo_base64) ? verification.photo_base64 : undefined);
 
         // 1. Update User (Personal Identity)
         await this.prisma.users.update({
@@ -428,8 +428,9 @@ export class UsersService {
         });
 
         // 4. Update the main user status and professional identity
-        // Use selfie (profile_picture_url) if available, otherwise fallback to Aadhaar photo (finalPhoto) unless restricted
-        const finalProfilePic = data.profile_picture_url || finalPhoto;
+        // Use selfie (profile_picture_url) exclusively if available. 
+        // We do NOT automatically set the Aadhar photo as the profile picture anymore.
+        const finalProfilePic = data.profile_picture_url;
 
         return this.updateVerificationStatus(userId, {
             status: 'VERIFIED',

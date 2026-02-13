@@ -697,6 +697,7 @@ model services {
   category_id        String?             @db.Uuid
   service_categories service_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   service_providers  service_providers   @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_images     service_images[]
 
   @@index([provider_id])
   @@index([category_id])
@@ -712,6 +713,16 @@ model service_portfolios {
   service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([provider_id, display_order])
+}
+
+model service_images {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_id String   @db.Uuid
+  image_url  String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  services   services @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([service_id])
 }
 
 model service_leads {
