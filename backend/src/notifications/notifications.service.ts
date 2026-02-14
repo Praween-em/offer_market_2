@@ -33,7 +33,7 @@ export class NotificationsService implements OnModuleInit {
     }
 
     async registerToken(userId: string, fcmToken: string, platform: string = 'android', appType: string = 'USER') {
-        return (this.prisma as any).user_device_tokens.upsert({
+        return this.prisma.user_device_tokens.upsert({
             where: { fcm_token: fcmToken },
             update: { user_id: userId, platform, app_type: appType },
             create: { user_id: userId, fcm_token: fcmToken, platform, app_type: appType },
@@ -47,7 +47,7 @@ export class NotificationsService implements OnModuleInit {
             whereClause.app_type = targetApp;
         }
 
-        const tokens = await (this.prisma as any).user_device_tokens.findMany({
+        const tokens = await this.prisma.user_device_tokens.findMany({
             where: whereClause,
         });
 
@@ -85,7 +85,7 @@ export class NotificationsService implements OnModuleInit {
                 });
 
                 if (tokensToDelete.length > 0) {
-                    await (this.prisma as any).user_device_tokens.deleteMany({
+                    await this.prisma.user_device_tokens.deleteMany({
                         where: { fcm_token: { in: tokensToDelete } },
                     });
                 }

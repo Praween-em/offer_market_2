@@ -146,7 +146,8 @@ export class RevealContactController {
                         {
                             type: 'LEAD_UNLOCKED',
                             leadId: leadId,
-                        }
+                        },
+                        'USER'
                     );
                 } catch (notiError) {
                     console.error('Failed to send lead unlock notification:', notiError);

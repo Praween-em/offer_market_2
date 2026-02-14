@@ -2,12 +2,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationService } from '../location/location.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ServicesService {
     constructor(
         private prisma: PrismaService,
         private locationService: LocationService,
+        private notificationsService: NotificationsService,
     ) { }
 
     async reportServiceRequest(requestId: string, reportedBy: string, reason: any, notes?: string) {
@@ -359,7 +361,7 @@ export class ServicesService {
 
         const { images, ...remainingData } = data;
 
-        return this.prisma.service_requests.create({
+        const result = await this.prisma.service_requests.create({
             data: {
                 title: data.title,
                 description: data.description,
@@ -381,6 +383,84 @@ export class ServicesService {
                 service_categories: true
             }
         });
+
+        // Trigger notifications to nearby providers (async)
+        this.notifyNearbyProviders(result.id, data.categoryId, data.latitude, data.longitude, data.title).catch(err => {
+            console.error('Failed to notify providers for new request:', err);
+        });
+
+        return result;
+    }
+
+    async notifyNearbyProviders(requestId: string, categoryId: string, lat?: number, lng?: number, title?: string) {
+        if (!lat || !lng) return;
+
+        // 1. Get the category and its relatives (parent/children)
+        const category = await this.prisma.service_categories.findUnique({
+            where: { id: categoryId },
+            include: { sub_categories: { select: { id: true } } }
+        });
+
+        if (!category) return;
+
+        const categoryIds = [category.id, ...category.sub_categories.map(s => s.id)];
+        if (category.parent_id) {
+            categoryIds.push(category.parent_id);
+            // Also get siblings
+            const siblings = await this.prisma.service_categories.findMany({
+                where: { parent_id: category.parent_id },
+                select: { id: true }
+            });
+            siblings.forEach(s => {
+                if (!categoryIds.includes(s.id)) categoryIds.push(s.id);
+            });
+        }
+
+        // 2. Find providers in these categories
+        const providers = await this.prisma.service_providers.findMany({
+            where: {
+                category_id: { in: categoryIds },
+                is_active: true,
+            },
+            select: {
+                user_id: true,
+                latitude: true,
+                longitude: true
+            }
+        });
+
+        const RADIUS_KM = 12;
+        const targetUserIds: string[] = [];
+
+        for (const provider of providers) {
+            if (provider.latitude && provider.longitude) {
+                const distance = this.locationService.calculateDistance(
+                    Number(lat),
+                    Number(lng),
+                    Number(provider.latitude),
+                    Number(provider.longitude)
+                );
+                if (distance <= RADIUS_KM) {
+                    targetUserIds.push(provider.user_id);
+                }
+            }
+        }
+
+        if (targetUserIds.length > 0) {
+            console.log(`Notifying ${targetUserIds.length} providers about new request: ${requestId}`);
+            for (const pUserId of targetUserIds) {
+                this.notificationsService.sendPushNotification(
+                    pUserId,
+                    'New Job Nearby! 📍',
+                    `A new request for "${title}" has been posted near your location.`,
+                    {
+                        type: 'NEW_REQUEST',
+                        requestId: requestId,
+                    },
+                    'PROVIDER'
+                ).catch(err => console.error(`Failed to notify provider ${pUserId}:`, err));
+            }
+        }
     }
 
     async updateServiceRequest(requestId: string, userId: string, data: {
