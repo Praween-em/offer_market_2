@@ -72,26 +72,30 @@ export class NotificationsService implements OnModuleInit {
         };
 
         try {
+            console.log(`[Push] Sending to ${fcmTokens.length} tokens. Title: "${title}"`);
             const response = await admin.messaging().sendEachForMulticast(message);
-            console.log(`Push: Successfully sent ${response.successCount} notifications`);
+            console.log(`[Push] Success: ${response.successCount}, Failure: ${response.failureCount}`);
 
-            // Clean up invalid tokens
             if (response.failureCount > 0) {
                 const tokensToDelete: string[] = [];
                 response.responses.forEach((resp, idx) => {
-                    if (!resp.success && (resp.error?.code === 'messaging/registration-token-not-registered' || resp.error?.code === 'messaging/invalid-registration-token')) {
-                        tokensToDelete.push(fcmTokens[idx]);
+                    if (!resp.success) {
+                        console.error(`[Push] Error for token ${idx}:`, resp.error);
+                        if (resp.error?.code === 'messaging/registration-token-not-registered' || resp.error?.code === 'messaging/invalid-registration-token') {
+                            tokensToDelete.push(fcmTokens[idx]);
+                        }
                     }
                 });
 
                 if (tokensToDelete.length > 0) {
+                    console.log(`[Push] Deleting ${tokensToDelete.length} invalid tokens.`);
                     await this.prisma.user_device_tokens.deleteMany({
                         where: { fcm_token: { in: tokensToDelete } },
                     });
                 }
             }
         } catch (error) {
-            console.error('Error sending push notification:', error);
+            console.error('[Push] CRITICAL ERROR sending notification:', error);
         }
     }
 
