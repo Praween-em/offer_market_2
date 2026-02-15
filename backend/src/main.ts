@@ -33,9 +33,13 @@ async function bootstrap() {
           "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
           "fcm_token" TEXT NOT NULL UNIQUE,
           "platform" VARCHAR(16) NOT NULL DEFAULT 'android',
+          "app_type" VARCHAR(20) NOT NULL DEFAULT 'USER',
           "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
+
+      // Add app_type column if table exists but column is missing
+      await prisma.$executeRawUnsafe('ALTER TABLE "user_device_tokens" ADD COLUMN IF NOT EXISTS "app_type" VARCHAR(20) DEFAULT \'USER\';');
 
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "provider_unlocks" (
