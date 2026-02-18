@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, UseGuards, Request, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, UseGuards, Request, Body, Query } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,8 +8,8 @@ export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
 
     @Get()
-    async getNotifications(@Request() req: any) {
-        return this.notificationsService.getUserNotifications(req.user.userId);
+    async getNotifications(@Request() req: any, @Query('appType') appType?: string) {
+        return this.notificationsService.getUserNotifications(req.user.userId, appType);
     }
 
     @Post('register-token')

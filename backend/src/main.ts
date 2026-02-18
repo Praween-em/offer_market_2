@@ -51,6 +51,12 @@ async function bootstrap() {
         );
       `);
 
+      // Add unique index for upsert compatibility
+      await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "provider_unlocks_user_id_provider_id_key" 
+        ON "provider_unlocks"("user_id", "provider_id");
+      `);
+
       // Create Wallet Tables if they don't exist
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "user_wallets" (

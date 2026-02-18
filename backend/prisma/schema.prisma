@@ -7,6 +7,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model affiliate_offers {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title               String   @db.VarChar(255)
+  description         String?
+  image_url           String?
+  affiliate_url       String
+  platform            String   @db.VarChar(64)
+  original_price      Decimal? @db.Decimal(12, 2)
+  offer_price         Decimal? @db.Decimal(12, 2)
+  discount_percentage Float?
+  category            String?  @db.VarChar(128)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([category])
+  @@index([platform, is_active])
+}
+
+model affiliate_stores {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String   @db.VarChar(128)
+  slug                String   @unique @db.VarChar(64)
+  description         String?
+  logo_url            String?
+  icon_name           String?  @db.VarChar(64)
+  brand_color         String?  @db.VarChar(7)
+  affiliate_url       String
+  profit_percentage   Float
+  cashback_percentage Float
+  is_active           Boolean  @default(true)
+  display_order       Int      @default(0)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_active, display_order])
+}
+
+model analytics_events {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id String   @db.Uuid
+  user_id     String?  @db.Uuid
+  event_type  String   @db.VarChar(32)
+  source      String   @db.VarChar(32)
+  source_id   String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  metadata    Json?
+
+  @@index([created_at])
+  @@index([event_type])
+  @@index([provider_id])
+}
+
 model api_rate_limits {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   key          String
@@ -122,6 +175,24 @@ model campaigns {
   offers      offers[]
 }
 
+model cashback_transactions {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String   @db.Uuid
+  amount           Decimal  @db.Decimal(12, 2)
+  total_profit     Decimal  @db.Decimal(12, 2)
+  network_order_id String?  @unique
+  platform         String?  @db.VarChar(64)
+  status           String   @default("pending")
+  type             String   @default("cashback")
+  notes            String?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+  users            users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status])
+  @@index([user_id])
+}
+
 model categories {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String             @db.VarChar(128)
@@ -132,6 +203,74 @@ model categories {
   categories       categories?        @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_categories categories[]       @relation("categoriesTocategories")
   offer_categories offer_categories[]
+}
+
+model consent_ledger {
+  consent_id       String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String          @db.Uuid
+  purpose_code     String          @db.VarChar(50)
+  notice_id        String          @db.Uuid
+  consent_given_at DateTime        @default(now()) @db.Timestamptz(6)
+  ip_address       String?         @db.VarChar(45)
+  user_agent       String?
+  consent_notices  consent_notices @relation(fields: [notice_id], references: [id])
+  users            users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model consent_notices {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type           String           @db.VarChar(50)
+  version        String           @db.VarChar(10)
+  content        String
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  consent_ledger consent_ledger[]
+
+  @@unique([type, version])
+}
+
+model forensic_audit_logs {
+  log_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_type String   @db.VarChar(100)
+  actor_id   String?  @db.Uuid
+  event_hash String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [actor_id], references: [id])
+}
+
+model grievance_redressal {
+  ticket_id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String               @db.Uuid
+  issue_type         grievance_issue_type
+  status             grievance_status
+  resolution_details String?
+  deadline_timestamp DateTime?            @db.Timestamptz(6)
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model identity_vault {
+  vault_id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  encrypted_xml_data String
+  encryption_key_id  String            @db.VarChar(100)
+  stored_at          DateTime          @default(now()) @db.Timestamptz(6)
+  user_verification  user_verification @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model lead_unlocks {
+  unlock_id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_id             String           @db.Uuid
+  worker_id           String           @db.Uuid
+  customer_id         String?          @db.Uuid
+  ad_completion_token String?
+  revealed_at         DateTime         @default(now()) @db.Timestamptz(6)
+  service_requests    service_requests @relation(fields: [lead_id], references: [id])
+  users               users            @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+
+  @@unique([lead_id, worker_id], name: "limit_three")
 }
 
 model media_assets {
@@ -160,6 +299,7 @@ model notifications {
   data              Json?
   is_read           Boolean                @default(false)
   created_at        DateTime               @default(now()) @db.Timestamptz(6)
+  app_type          String?                @default("USER") @db.VarChar(20)
   businesses        businesses?            @relation(fields: [business_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   offers            offers?                @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users             users?                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -177,7 +317,6 @@ model offer_categories {
   @@index([category_id], map: "idx_offer_categories_cat")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model offer_claims {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String?   @db.Uuid
@@ -207,7 +346,6 @@ model offer_clicks {
   @@index([offer_id], map: "idx_offer_clicks_offerid")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model offer_items {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   offer_id      String   @db.Uuid
@@ -222,6 +360,25 @@ model offer_items {
   offers        offers   @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([offer_id], map: "idx_offer_items_offerid")
+}
+
+model offer_leads {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  offer_id     String           @db.Uuid
+  user_id      String?          @db.Uuid
+  user_phone   String           @db.VarChar(20)
+  user_name    String?          @db.VarChar(255)
+  status       lead_status_enum @default(new)
+  created_at   DateTime         @default(now()) @db.Timestamptz(6)
+  contacted_at DateTime?        @db.Timestamptz(6)
+  metadata     Json?
+  offers       offers           @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?           @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_offer_leads_created_at")
+  @@index([offer_id], map: "idx_offer_leads_offer_id")
+  @@index([status], map: "idx_offer_leads_status")
+  @@index([user_id], map: "idx_offer_leads_user_id")
 }
 
 model offer_media {
@@ -284,7 +441,6 @@ model offer_rules {
   @@index([rule_type], map: "idx_offer_rules_ruletype")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model offer_schedules {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   offer_id    String    @db.Uuid
@@ -312,7 +468,6 @@ model offer_views {
   @@index([user_id], map: "idx_offer_views_userid")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model offers {
   id                              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   branch_id                       String              @db.Uuid
@@ -353,322 +508,204 @@ model offers {
   @@index([status, start_date, end_date], map: "idx_offers_status_dates")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model spatial_ref_sys {
-  srid      Int     @id
-  auth_name String? @db.VarChar(256)
-  auth_srid Int?
-  srtext    String? @db.VarChar(2048)
-  proj4text String? @db.VarChar(2048)
-}
+model provider_tickets {
+  id                                        String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id                               String               @db.Uuid
+  ticket_number                             String               @unique @db.VarChar(20)
+  category                                  ticket_category_enum
+  subject                                   String               @db.VarChar(255)
+  description                               String
+  priority                                  ticket_priority_enum @default(medium)
+  status                                    ticket_status_enum   @default(open)
+  assigned_to                               String?              @db.Uuid
+  created_at                                DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                                DateTime             @default(now()) @db.Timestamptz(6)
+  resolved_at                               DateTime?            @db.Timestamptz(6)
+  closed_at                                 DateTime?            @db.Timestamptz(6)
+  users_assigned                            users?               @relation("provider_tickets_assigned_toTousers", fields: [assigned_to], references: [id])
+  users_provider                            users                @relation("provider_tickets_provider_idTousers", fields: [provider_id], references: [id], onDelete: Cascade)
+  ticket_attachments                        ticket_attachments[]
+  ticket_messages                           ticket_messages[]
 
-model user_followed_businesses {
-  user_id     String     @db.Uuid
-  business_id String     @db.Uuid
-  followed_at DateTime   @default(now()) @db.Timestamptz(6)
-  businesses  businesses @relation(fields: [business_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users       users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([user_id, business_id])
-  @@index([business_id], map: "idx_followed_businesses_business")
-}
-
-model user_saved_offers {
-  user_id  String   @db.Uuid
-  offer_id String   @db.Uuid
-  saved_at DateTime @default(now()) @db.Timestamptz(6)
-  offers   offers   @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([user_id, offer_id])
-}
-
-model affiliate_offers {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title               String   @db.VarChar(255)
-  description         String?
-  image_url           String?
-  affiliate_url       String
-  platform            String   @db.VarChar(64)
-  original_price      Decimal? @db.Decimal(12, 2)
-  offer_price         Decimal? @db.Decimal(12, 2)
-  discount_percentage Float?
-  category            String?  @db.VarChar(128)
-  is_active           Boolean  @default(true)
-  created_at          DateTime @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime @default(now()) @db.Timestamptz(6)
-
-  @@index([platform, is_active])
-  @@index([category])
-}
-
-model affiliate_stores {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                String   @db.VarChar(128)
-  slug                String   @unique @db.VarChar(64)
-  description         String?
-  logo_url            String?
-  icon_name           String?  @db.VarChar(64)
-  brand_color         String?  @db.VarChar(7)
-  affiliate_url       String
-  profit_percentage   Float
-  cashback_percentage Float
-  is_active           Boolean  @default(true)
-  display_order       Int      @default(0)
-  created_at          DateTime @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime @default(now()) @db.Timestamptz(6)
-
-  @@index([is_active, display_order])
-}
-
-model user_wallets {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String   @unique @db.Uuid
-  current_balance Decimal  @default(0) @db.Decimal(12, 2)
-  pending_balance Decimal  @default(0) @db.Decimal(12, 2)
-  total_earned    Decimal  @default(0) @db.Decimal(12, 2)
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime @default(now()) @db.Timestamptz(6)
-  users           users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model cashback_transactions {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String   @db.Uuid
-  amount           Decimal  @db.Decimal(12, 2)
-  total_profit     Decimal  @db.Decimal(12, 2)
-  network_order_id String?  @unique
-  platform         String?  @db.VarChar(64)
-  status           String   @default("pending")
-  type             String   @default("cashback")
-  notes            String?
-  created_at       DateTime @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime @default(now()) @db.Timestamptz(6)
-  users            users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([user_id])
+  @@index([created_at])
+  @@index([provider_id])
   @@index([status])
 }
 
-model users {
-  id                                                   String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phone                                                String                     @unique @db.VarChar(20)
-  email                                                String?                    @db.VarChar(320)
-  role                                                 role_enum                  @default(consumer)
-  is_phone_verified                                    Boolean                    @default(false)
-  status                                               user_status_enum           @default(active)
-  display_name                                         String?                    @db.VarChar(255)
-  metadata                                             Json?
-  created_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
-  updated_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
-  profile_picture                                      String?
-  verification_status                                  verification_status_enum   @default(NOT_STARTED)
-  verified_at                                          DateTime?                  @db.Timestamptz(6)
-  audit_logs                                           audit_logs[]
-  business_reports_business_reports_reported_byTousers business_reports[]         @relation("business_reports_reported_byTousers")
-  business_reports_business_reports_reviewed_byTousers business_reports[]         @relation("business_reports_reviewed_byTousers")
-  businesses                                           businesses[]
-  campaigns                                            campaigns[]
-  cashback_transactions                                cashback_transactions[]
-  media_assets                                         media_assets[]
-  notifications                                        notifications[]
-  offer_claims                                         offer_claims[]
-  offer_clicks                                         offer_clicks[]
-  offer_leads                                          offer_leads[]
-  offer_reports_offer_reports_reported_byTousers       offer_reports[]            @relation("offer_reports_reported_byTousers")
-  offer_reports_offer_reports_reviewed_byTousers       offer_reports[]            @relation("offer_reports_reviewed_byTousers")
-  offer_views                                          offer_views[]
-  offers_offers_approved_byTousers                     offers[]                   @relation("offers_approved_byTousers")
-  offers_offers_created_byTousers                      offers[]                   @relation("offers_created_byTousers")
-  service_leads                                        service_leads[]
-  service_providers                                    service_providers?
-  service_requests                                     service_requests[]
-  service_reviews                                      service_reviews[]
-  user_device_tokens                                   user_device_tokens[]
-  user_followed_businesses                             user_followed_businesses[]
-  user_saved_offers                                    user_saved_offers[]
-  user_wallets                                         user_wallets?
-  consent_ledger                                       consent_ledger[]
-  user_verification                                    user_verification?
-  grievance_redressal                                  grievance_redressal[]
-  forensic_audit_logs                                  forensic_audit_logs[]
-  lead_unlocks                                         lead_unlocks[]
-  service_request_reports                              service_request_reports[]
-  service_provider_reports                             service_provider_reports[]
-  provider_tickets_provider                            provider_tickets[]         @relation("provider_tickets_provider")
-  provider_tickets_assigned                            provider_tickets[]         @relation("provider_tickets_assigned")
-  ticket_messages                                      ticket_messages[]
-  ticket_attachments                                   ticket_attachments[]
-  provider_unlocks                                     provider_unlocks[]
+model provider_unlocks {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String            @db.Uuid
+  provider_id         String            @db.Uuid
+  ad_completion_token String?
+  unlocked_at         DateTime          @default(now()) @db.Timestamptz(6)
+  service_providers   service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([role, status], map: "idx_users_role_status")
-}
-
-model offer_leads {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  offer_id     String           @db.Uuid
-  user_id      String?          @db.Uuid
-  user_phone   String           @db.VarChar(20)
-  user_name    String?          @db.VarChar(255)
-  status       lead_status_enum @default(new)
-  created_at   DateTime         @default(now()) @db.Timestamptz(6)
-  contacted_at DateTime?        @db.Timestamptz(6)
-  metadata     Json?
-  offers       offers           @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users        users?           @relation(fields: [user_id], references: [id], onUpdate: NoAction)
-
-  @@index([offer_id], map: "idx_offer_leads_offer_id")
-  @@index([user_id], map: "idx_offer_leads_user_id")
-  @@index([status], map: "idx_offer_leads_status")
-  @@index([created_at(sort: Desc)], map: "idx_offer_leads_created_at")
-}
-
-model consent_notices {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type           String           @db.VarChar(50) // ONBOARDING, LEAD_REVEAL, OKYC_VERIFY
-  version        String           @db.VarChar(10)
-  content        String
-  is_active      Boolean          @default(true)
-  created_at     DateTime         @default(now()) @db.Timestamptz(6)
-  consent_ledger consent_ledger[]
-
-  @@unique([type, version])
-}
-
-model consent_ledger {
-  consent_id      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String          @db.Uuid
-  purpose_code    String          @db.VarChar(50)
-  notice_id       String          @db.Uuid
-  consent_given_at DateTime       @default(now()) @db.Timestamptz(6)
-  ip_address      String?         @db.VarChar(45)
-  user_agent      String?
-  users           users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  consent_notices consent_notices @relation(fields: [notice_id], references: [id])
-
-  @@index([user_id])
-}
-
-model user_verification {
-  user_id           String          @id @db.Uuid
-  full_name_xml     String?         @db.VarChar(255)
-  masked_aadhaar    String?         @db.VarChar(14)
-  uid_token         String?         @unique @db.VarChar(255)
-  photo_base64      String?
-  verified_at       DateTime?       @db.Timestamptz(6)
-  is_active         Boolean         @default(true)
-  created_at        DateTime        @default(now()) @db.Timestamptz(6)
-  users             users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  identity_vault    identity_vault[]
-  user_nominees     user_nominees[]
-}
-
-model identity_vault {
-  vault_id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id            String            @db.Uuid
-  encrypted_xml_data String
-  encryption_key_id  String            @db.VarChar(100)
-  stored_at          DateTime          @default(now()) @db.Timestamptz(6)
-  user_verification  user_verification @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-}
-
-model lead_unlocks {
-  unlock_id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lead_id              String            @db.Uuid
-  worker_id            String            @db.Uuid
-  customer_id          String?           @db.Uuid
-  ad_completion_token  String?
-  revealed_at          DateTime          @default(now()) @db.Timestamptz(6)
-  users                users             @relation(fields: [worker_id], references: [id], onDelete: Cascade)
-  service_requests     service_requests  @relation(fields: [lead_id], references: [id])
-
-  @@unique([lead_id, worker_id], name: "limit_three")
-}
-
-model user_nominees {
-  nominee_id       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String            @db.Uuid
-  nominee_name     String            @db.VarChar(255)
-  nominee_contact  String            @db.VarChar(15)
-  relationship     String            @db.VarChar(50)
-  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
-  user_verification user_verification @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-}
-
-model grievance_redressal {
-  ticket_id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id            String               @db.Uuid
-  issue_type         grievance_issue_type
-  status             grievance_status
-  resolution_details String?
-  deadline_timestamp DateTime?            @db.Timestamptz(6)
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-}
-
-model forensic_audit_logs {
-  log_id      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  event_type  String   @db.VarChar(100)
-  actor_id    String?  @db.Uuid
-  event_hash  String
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  users       users?   @relation(fields: [actor_id], references: [id], onDelete: SetNull)
+  @@unique([user_id, provider_id])
 }
 
 model service_categories {
-  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String               @db.VarChar(128)
-  icon              String?              @db.VarChar(64)
-  description       String?
-  is_active         Boolean              @default(true)
-  created_at        DateTime             @default(now()) @db.Timestamptz(6)
-  parent_id         String?              @db.Uuid
-  provider_type     String?              @db.VarChar(32)
-  keywords          String?
+  id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String               @db.VarChar(128)
+  icon                     String?              @db.VarChar(64)
+  description              String?
+  is_active                Boolean              @default(true)
+  created_at               DateTime             @default(now()) @db.Timestamptz(6)
+  parent_id                String?              @db.Uuid
+  provider_type            String?              @db.VarChar(32)
+  keywords                 String?
+  parent                   service_categories?  @relation("service_categoriesToservice_categories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sub_categories           service_categories[] @relation("service_categoriesToservice_categories")
+  service_providers        service_providers[]
+  service_requests         service_requests[]
+  services                 services[]
+}
 
-  parent            service_categories?  @relation("service_categories_hierarchy", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  sub_categories    service_categories[] @relation("service_categories_hierarchy")
-  service_providers service_providers[]
-  service_requests  service_requests[]
-  services          services[]
+model service_images {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_id String   @db.Uuid
+  image_url  String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  services   services @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_service_images_service")
+
+  @@index([service_id], map: "idx_service_images_service_id")
+}
+
+model service_leads {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String            @db.Uuid
+  user_id           String?           @db.Uuid
+  user_phone        String            @db.VarChar(20)
+  user_name         String?           @db.VarChar(255)
+  service_requested String?           @db.VarChar(255)
+  status            lead_status_enum  @default(new)
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  metadata          Json?
+  unlock_count      Int               @default(0)
+  service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([provider_id])
+  @@index([user_id])
+}
+
+model service_portfolios {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String            @db.Uuid
+  image_url         String
+  caption           String?           @db.VarChar(255)
+  display_order     Int               @default(0)
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([provider_id, display_order])
+}
+
+model service_provider_reports {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String             @db.Uuid
+  reported_by       String             @db.Uuid
+  reason            report_reason_enum
+  notes             String?
+  status            report_status_enum @default(pending)
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  service_providers service_providers  @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users              @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([provider_id])
+  @@index([reported_by])
 }
 
 model service_providers {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id            String               @unique @db.Uuid
-  category_id        String               @db.Uuid
-  display_name       String               @db.VarChar(255)
-  bio                String?
-  experience_years   Int                  @default(0)
-  starting_price     Decimal?             @db.Decimal(12, 2)
-  service_area       String?              @db.VarChar(255)
-  whatsapp_number    String?              @db.VarChar(20)
-  phone_number       String?              @db.VarChar(20)
-  is_verified        Boolean              @default(false)
-  is_active          Boolean              @default(true)
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
-  profile_picture    String?
-  keywords           String?
-  latitude           Decimal?             @db.Decimal(9, 6)
-  longitude          Decimal?             @db.Decimal(9, 6)
-  location_name      String?              @db.VarChar(255)
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String                     @unique @db.Uuid
+  category_id              String                     @db.Uuid
+  display_name             String                     @db.VarChar(255)
+  bio                      String?
+  experience_years         Int                        @default(0)
+  starting_price           Decimal?                   @db.Decimal(12, 2)
+  service_area             String?                    @db.VarChar(255)
+  whatsapp_number          String?                    @db.VarChar(20)
+  phone_number             String?                    @db.VarChar(20)
+  is_verified              Boolean                    @default(false)
+  is_active                Boolean                    @default(true)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  profile_picture          String?
+  average_rating           Decimal                    @default(0) @db.Decimal(3, 2)
+  total_reviews            Int                        @default(0)
+  keywords                 String?
+  latitude                 Decimal?                   @db.Decimal(9, 6)
+  longitude                Decimal?                   @db.Decimal(9, 6)
+  location_name            String?                    @db.VarChar(255)
+  provider_unlocks         provider_unlocks[]
+  service_leads            service_leads[]
+  service_portfolios       service_portfolios[]
+  service_provider_reports service_provider_reports[]
+  service_categories       service_categories         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                    users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_reviews          service_reviews[]
+  services                 services[]
 
-  average_rating     Decimal              @default(0) @db.Decimal(3, 2)
-  total_reviews      Int                  @default(0)
-  service_leads      service_leads[]
-  service_portfolios service_portfolios[]
-  service_categories service_categories   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_reviews    service_reviews[]
-  services           services[]
-  reports            service_provider_reports[]
-  provider_unlocks   provider_unlocks[]
-
+  @@index([average_rating])
   @@index([category_id])
   @@index([is_active])
-  @@index([average_rating])
   @@index([latitude, longitude])
+}
+
+model service_request_media {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_id       String           @db.Uuid
+  image_url        String
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  service_requests service_requests @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([request_id])
+}
+
+model service_request_reports {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_id       String             @db.Uuid
+  reported_by      String             @db.Uuid
+  reason           report_reason_enum
+  notes            String?
+  status           report_status_enum @default(pending)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  users            users              @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_requests service_requests   @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([reported_by])
+  @@index([request_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model service_requests {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String                    @db.Uuid
+  category_id             String                    @db.Uuid
+  title                   String                    @db.VarChar(255)
+  description             String?
+  status                  String                    @default("pending") @db.VarChar(32)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  unlock_count            Int                       @default(0)
+  latitude                Decimal?                  @db.Decimal(9, 6)
+  longitude               Decimal?                  @db.Decimal(9, 6)
+  location_name           String?                   @db.VarChar(255)
+  last_viewed_at          DateTime?                 @db.Timestamptz(6)
+  budget                  Decimal?                  @db.Decimal(12, 2)
+  urgency                 String?                   @default("medium") @db.VarChar(20)
+  lead_unlocks            lead_unlocks[]
+  media                   service_request_media[]
+  service_request_reports service_request_reports[]
+  service_categories      service_categories        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                   users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([last_viewed_at], map: "idx_service_requests_last_viewed")
+  @@index([urgency], map: "idx_service_requests_urgency")
+  @@index([category_id])
+  @@index([latitude, longitude])
+  @@index([user_id])
 }
 
 model service_reviews {
@@ -695,98 +732,48 @@ model services {
   is_active          Boolean             @default(true)
   created_at         DateTime            @default(now()) @db.Timestamptz(6)
   category_id        String?             @db.Uuid
+  service_images     service_images[]
   service_categories service_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   service_providers  service_providers   @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_images     service_images[]
 
-  @@index([provider_id])
   @@index([category_id])
-}
-
-model service_portfolios {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id       String            @db.Uuid
-  image_url         String
-  caption           String?           @db.VarChar(255)
-  display_order     Int               @default(0)
-  created_at        DateTime          @default(now()) @db.Timestamptz(6)
-  service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([provider_id, display_order])
-}
-
-model service_images {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  service_id String   @db.Uuid
-  image_url  String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  services   services @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([service_id])
-}
-
-model service_leads {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id       String            @db.Uuid
-  user_id           String?           @db.Uuid
-  user_phone        String            @db.VarChar(20)
-  user_name         String?           @db.VarChar(255)
-  service_requested String?           @db.VarChar(255)
-  status            lead_status_enum  @default(new)
-  unlock_count      Int               @default(0)
-  created_at        DateTime          @default(now()) @db.Timestamptz(6)
-  metadata          Json?
-  service_providers service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users             users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
-
   @@index([provider_id])
-  @@index([user_id])
 }
 
-model provider_unlocks {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String   @db.Uuid
-  provider_id         String   @db.Uuid
-  ad_completion_token String?
-  unlocked_at         DateTime @default(now()) @db.Timestamptz(6)
-  users               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  service_providers   service_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, provider_id])
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }
 
-model service_requests {
-  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id            String                  @db.Uuid
-  category_id        String                  @db.Uuid
-  title              String                  @db.VarChar(255)
-  description        String?
-  status             String                  @default("pending") @db.VarChar(32)
-  unlock_count       Int                     @default(0)
-  created_at         DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime                @default(now()) @db.Timestamptz(6)
-  latitude           Decimal?                @db.Decimal(9, 6)
-  longitude          Decimal?                @db.Decimal(9, 6)
-  location_name      String?                 @db.VarChar(255)
-  media              service_request_media[]
-  lead_unlocks       lead_unlocks[]
-  service_categories service_categories      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users              users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  reports            service_request_reports[]
-
-  @@index([user_id])
-  @@index([category_id])
-  @@index([latitude, longitude])
-}
-
-model service_request_media {
+model ticket_attachments {
   id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  request_id       String           @db.Uuid
-  image_url        String
+  ticket_id        String           @db.Uuid
+  file_url         String
+  file_name        String?          @db.VarChar(255)
+  file_type        String?          @db.VarChar(50)
+  uploaded_by      String           @db.Uuid
   created_at       DateTime         @default(now()) @db.Timestamptz(6)
-  service_requests service_requests @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  users            users            @relation(fields: [uploaded_by], references: [id])
 
-  @@index([request_id])
+  @@index([ticket_id])
+}
+
+model ticket_messages {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_id        String           @db.Uuid
+  sender_id        String           @db.Uuid
+  message          String
+  is_internal      Boolean          @default(false)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  users            users            @relation(fields: [sender_id], references: [id])
+  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+
+  @@index([ticket_id])
 }
 
 model user_device_tokens {
@@ -794,11 +781,122 @@ model user_device_tokens {
   user_id    String   @db.Uuid
   fcm_token  String   @unique
   platform   String   @default("android") @db.VarChar(16)
-  app_type   String   @default("USER") @db.VarChar(20)
   created_at DateTime @default(now()) @db.Timestamptz(6)
+  app_type   String?  @default("USER") @db.VarChar(20)
   users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([app_type], map: "idx_user_device_tokens_app_type")
   @@index([user_id])
+}
+
+model user_followed_businesses {
+  user_id     String     @db.Uuid
+  business_id String     @db.Uuid
+  followed_at DateTime   @default(now()) @db.Timestamptz(6)
+  businesses  businesses @relation(fields: [business_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, business_id])
+  @@index([business_id], map: "idx_followed_businesses_business")
+}
+
+model user_nominees {
+  nominee_id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String            @db.Uuid
+  nominee_name      String            @db.VarChar(255)
+  nominee_contact   String            @db.VarChar(15)
+  relationship      String            @db.VarChar(50)
+  updated_at        DateTime          @default(now()) @db.Timestamptz(6)
+  user_verification user_verification @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model user_saved_offers {
+  user_id  String   @db.Uuid
+  offer_id String   @db.Uuid
+  saved_at DateTime @default(now()) @db.Timestamptz(6)
+  offers   offers   @relation(fields: [offer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, offer_id])
+}
+
+model user_verification {
+  user_id        String           @id @db.Uuid
+  full_name_xml  String?          @db.VarChar(255)
+  masked_aadhaar String?          @db.VarChar(14)
+  uid_token      String?          @unique @db.VarChar(255)
+  photo_base64   String?
+  verified_at    DateTime?        @db.Timestamptz(6)
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  identity_vault identity_vault[]
+  user_nominees  user_nominees[]
+  users          users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model user_wallets {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @unique @db.Uuid
+  current_balance Decimal  @default(0) @db.Decimal(12, 2)
+  pending_balance Decimal  @default(0) @db.Decimal(12, 2)
+  total_earned    Decimal  @default(0) @db.Decimal(12, 2)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  users           users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                                                   String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone                                                String                     @unique @db.VarChar(20)
+  email                                                String?                    @db.VarChar(320)
+  role                                                 role_enum                  @default(consumer)
+  is_phone_verified                                    Boolean                    @default(false)
+  status                                               user_status_enum           @default(active)
+  display_name                                         String?                    @db.VarChar(255)
+  metadata                                             Json?
+  created_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                                           DateTime                   @default(now()) @db.Timestamptz(6)
+  profile_picture                                      String?
+  verification_status                                  verification_status_enum   @default(NOT_STARTED)
+  verified_at                                          DateTime?                  @db.Timestamptz(6)
+  audit_logs                                           audit_logs[]
+  business_reports_business_reports_reported_byTousers business_reports[]         @relation("business_reports_reported_byTousers")
+  business_reports_business_reports_reviewed_byTousers business_reports[]         @relation("business_reports_reviewed_byTousers")
+  businesses                                           businesses[]
+  campaigns                                            campaigns[]
+  cashback_transactions                                cashback_transactions[]
+  consent_ledger                                       consent_ledger[]
+  forensic_audit_logs                                  forensic_audit_logs[]
+  grievance_redressal                                  grievance_redressal[]
+  lead_unlocks                                         lead_unlocks[]
+  media_assets                                         media_assets[]
+  notifications                                        notifications[]
+  offer_claims                                         offer_claims[]
+  offer_clicks                                         offer_clicks[]
+  offer_leads                                          offer_leads[]
+  offer_reports_offer_reports_reported_byTousers       offer_reports[]            @relation("offer_reports_reported_byTousers")
+  offer_reports_offer_reports_reviewed_byTousers       offer_reports[]            @relation("offer_reports_reviewed_byTousers")
+  offer_views                                          offer_views[]
+  offers_offers_approved_byTousers                     offers[]                   @relation("offers_approved_byTousers")
+  offers_offers_created_byTousers                      offers[]                   @relation("offers_created_byTousers")
+  provider_tickets_provider_tickets_assigned_toTousers provider_tickets[]         @relation("provider_tickets_assigned_toTousers")
+  provider_tickets_provider_tickets_provider_idTousers provider_tickets[]         @relation("provider_tickets_provider_idTousers")
+  provider_unlocks                                     provider_unlocks[]
+  service_leads                                        service_leads[]
+  service_provider_reports                             service_provider_reports[]
+  service_providers                                    service_providers?
+  service_request_reports                              service_request_reports[]
+  service_requests                                     service_requests[]
+  service_reviews                                      service_reviews[]
+  ticket_attachments                                   ticket_attachments[]
+  ticket_messages                                      ticket_messages[]
+  user_device_tokens                                   user_device_tokens[]
+  user_followed_businesses                             user_followed_businesses[]
+  user_saved_offers                                    user_saved_offers[]
+  user_verification                                    user_verification?
+  user_wallets                                         user_wallets?
+
+  @@index([role, status], map: "idx_users_role_status")
 }
 
 enum brand_type_enum {
@@ -816,6 +914,26 @@ enum business_type_enum {
   other
 }
 
+enum grievance_issue_type {
+  ERASURE
+  CORRECTION
+  BREACH_REPORT
+  OTHER
+}
+
+enum grievance_status {
+  OPEN
+  RESOLVED
+  ESCALATED
+}
+
+enum lead_status_enum {
+  new
+  contacted
+  converted
+  filled
+}
+
 enum media_type_enum {
   image
   video
@@ -827,6 +945,8 @@ enum notification_type_enum {
   offer_expiring
   offer_approved
   offer_rejected
+  NEW_REQUEST
+  LEAD_UNLOCKED
   generic
 }
 
@@ -866,36 +986,6 @@ enum report_reason_enum {
   other
 }
 
-model service_provider_reports {
-  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id       String             @db.Uuid
-  reported_by       String             @db.Uuid
-  reason            report_reason_enum
-  notes             String?
-  status            report_status_enum @default(pending)
-  created_at        DateTime           @default(now()) @db.Timestamptz(6)
-  service_providers service_providers  @relation(fields: [provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users             users              @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([provider_id])
-  @@index([reported_by])
-}
-
-model service_request_reports {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  request_id       String           @db.Uuid
-  reported_by      String           @db.Uuid
-  reason           report_reason_enum
-  notes            String?
-  status           report_status_enum @default(pending)
-  created_at       DateTime         @default(now()) @db.Timestamptz(6)
-  service_requests service_requests @relation(fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users            users            @relation(fields: [reported_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([request_id])
-  @@index([reported_by])
-}
-
 enum report_status_enum {
   pending
   reviewed
@@ -907,54 +997,6 @@ enum role_enum {
   business_owner
   admin
   service_provider
-}
-
-enum user_status_enum {
-  active
-  suspended
-  banned
-}
-
-enum lead_status_enum {
-  new
-  contacted
-  converted
-  filled
-}
-
-enum verification_status_enum {
-  NOT_STARTED
-  PENDING
-  VERIFIED
-  REJECTED
-}
-
-model analytics_events {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id String   @db.Uuid
-  user_id     String?  @db.Uuid
-  event_type  String   @db.VarChar(32) // call, whatsapp, view
-  source      String   @db.VarChar(32) // profile, service, request
-  source_id   String?  @db.Uuid
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  metadata    Json?
-
-  @@index([provider_id])
-  @@index([event_type])
-  @@index([created_at])
-}
-
-enum grievance_issue_type {
-  ERASURE
-  CORRECTION
-  BREACH_REPORT
-  OTHER
-}
-
-enum grievance_status {
-  OPEN
-  RESOLVED
-  ESCALATED
 }
 
 enum ticket_category_enum {
@@ -982,53 +1024,15 @@ enum ticket_status_enum {
   closed
 }
 
-model provider_tickets {
-  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_id     String                  @db.Uuid
-  ticket_number   String                  @unique @db.VarChar(20)
-  category        ticket_category_enum
-  subject         String                  @db.VarChar(255)
-  description     String
-  priority        ticket_priority_enum    @default(medium)
-  status          ticket_status_enum      @default(open)
-  assigned_to     String?                 @db.Uuid
-  created_at      DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime                @default(now()) @db.Timestamptz(6)
-  resolved_at     DateTime?               @db.Timestamptz(6)
-  closed_at       DateTime?               @db.Timestamptz(6)
-  users_provider  users                   @relation("provider_tickets_provider", fields: [provider_id], references: [id], onDelete: Cascade)
-  users_assigned  users?                  @relation("provider_tickets_assigned", fields: [assigned_to], references: [id])
-  ticket_messages ticket_messages[]
-  ticket_attachments ticket_attachments[]
-
-  @@index([provider_id])
-  @@index([status])
-  @@index([created_at])
+enum user_status_enum {
+  active
+  suspended
+  banned
 }
 
-model ticket_messages {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticket_id       String            @db.Uuid
-  sender_id       String            @db.Uuid
-  message         String
-  is_internal     Boolean           @default(false)
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  users           users             @relation(fields: [sender_id], references: [id])
-
-  @@index([ticket_id])
-}
-
-model ticket_attachments {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticket_id       String            @db.Uuid
-  file_url        String
-  file_name       String?           @db.VarChar(255)
-  file_type       String?           @db.VarChar(50)
-  uploaded_by     String            @db.Uuid
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  provider_tickets provider_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  users           users             @relation(fields: [uploaded_by], references: [id])
-
-  @@index([ticket_id])
+enum verification_status_enum {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
 }
