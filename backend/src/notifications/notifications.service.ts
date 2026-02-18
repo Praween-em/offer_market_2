@@ -55,6 +55,27 @@ export class NotificationsService implements OnModuleInit {
 
         const fcmTokens = tokens.map(t => t.fcm_token);
 
+        // Persist notification to database (NEW: This was missing!)
+        try {
+            await this.prisma.notifications.create({
+                data: {
+                    user_id: userId,
+                    title,
+                    body,
+                    notification_type: (data?.type && ['new_offer', 'offer_expiring', 'offer_approved', 'offer_rejected', 'NEW_REQUEST', 'LEAD_UNLOCKED'].includes(data.type))
+                        ? (data.type as any)
+                        : 'generic',
+                    data: data || {},
+                    app_type: targetApp === 'BOTH' ? null : targetApp,
+                }
+            });
+            console.log(`[Notification] Persisted for user ${userId}`);
+        } catch (dbError) {
+            console.error('[Notification] Failed to persist to database:', dbError);
+        }
+
+        const isJobAlert = data?.type === 'NEW_REQUEST';
+
         const message: admin.messaging.MulticastMessage = {
             tokens: fcmTokens,
             notification: {
@@ -65,8 +86,15 @@ export class NotificationsService implements OnModuleInit {
             android: {
                 priority: 'high',
                 notification: {
-                    sound: 'default',
-                    channelId: 'default',
+                    sound: isJobAlert ? 'alert_ring' : 'default',
+                    channelId: isJobAlert ? 'alerts' : 'default',
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: isJobAlert ? 'alert_ring.caf' : 'default',
+                    },
                 },
             },
         };
@@ -99,11 +127,18 @@ export class NotificationsService implements OnModuleInit {
         }
     }
 
-    async getUserNotifications(userId: string) {
+    async getUserNotifications(userId: string, appType?: string) {
+        const whereClause: any = { user_id: userId };
+
+        if (appType) {
+            whereClause.OR = [
+                { app_type: appType },
+                { app_type: null }
+            ];
+        }
+
         return this.prisma.notifications.findMany({
-            where: {
-                user_id: userId,
-            },
+            where: whereClause,
             orderBy: {
                 created_at: 'desc',
             },
