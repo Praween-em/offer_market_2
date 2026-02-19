@@ -592,7 +592,7 @@ export class ServicesService {
         );
 
         console.log('Sample request with activity:', requestsWithActivity[0]);
-        return requestsWithActivity;
+        return this.convertBigIntToNumber(requestsWithActivity);
     }
 
     async findProviderFeed(userId: string, lat?: number, lng?: number) {
@@ -927,7 +927,9 @@ export class ServicesService {
         if (obj === null || obj === undefined) return obj;
         if (typeof obj === 'bigint') return Number(obj);
         if (Array.isArray(obj)) return obj.map(item => this.convertBigIntToNumber(item));
-        if (obj instanceof Date || (obj && obj.constructor && obj.constructor.name === 'Decimal')) return obj;
+        if (obj instanceof Date) return obj;
+        // Convert Prisma Decimal to plain string so it serializes correctly in JSON
+        if (obj && obj.constructor && obj.constructor.name === 'Decimal') return obj.toString();
         if (typeof obj === 'object') {
             const newObj = {};
             for (const key in obj) {

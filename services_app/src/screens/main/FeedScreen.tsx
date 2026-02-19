@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { LocationService } from '../../services/LocationService';
+import NativeAdItem from '../../components/NativeAdItem';
+import { getCategoryAsset } from '../../utils/CategoryAssets';
 
 const FeedScreen = ({ navigation }: any) => {
     const { refreshUser, user } = useAuth();
@@ -46,21 +48,23 @@ const FeedScreen = ({ navigation }: any) => {
                     setLocationStatus('granted');
                     console.log('[FeedScreen] Location detected:', loc.latitude, loc.longitude);
 
-                    // Fire and forget reverse geocode for UI
-                    updateLocalityName(loc.latitude, loc.longitude);
+                    // Use robust reverse geocoding from service
+                    LocationService.reverseGeocode(loc.latitude, loc.longitude).then(address => {
+                        setCurrentLocation(address);
+                    });
 
                     return { lat: loc.latitude, lng: loc.longitude };
                 } else {
                     console.log('[FeedScreen] Location fetch returned null');
                     setLocationStatus('denied');
-                    setCurrentLocation('Signal Weak');
+                    setCurrentLocation('Turn on Location');
                 }
             } else if (status === 'never_ask_again') {
                 setLocationStatus('blocked');
-                setCurrentLocation('Location Blocked');
+                setCurrentLocation('Turn on Location');
             } else {
                 setLocationStatus('denied');
-                setCurrentLocation('Location Denied');
+                setCurrentLocation('Turn on Location');
             }
         } catch (error: any) {
             console.error('[FeedScreen] detectLocation failed:', error.message);
@@ -70,33 +74,7 @@ const FeedScreen = ({ navigation }: any) => {
         return null;
     };
 
-    const updateLocalityName = async (lat: number, lng: number) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        try {
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-                {
-                    headers: { 'User-Agent': 'ServicesApp' },
-                    signal: controller.signal
-                }
-            );
-            clearTimeout(timeoutId);
-            const data = await response.json();
-            if (data && data.address) {
-                const addr = data.address;
-                const locality = addr.suburb || addr.neighbourhood || addr.village || addr.city_district || addr.locality || '';
-                const city = addr.city || addr.town || addr.village || '';
-                setCurrentLocation(locality ? `${locality}, ${city}` : city || "Unknown Location");
-            } else {
-                setCurrentLocation("Address not found");
-            }
-        } catch (geocoderError) {
-            console.warn('[FeedScreen] Reverse geocode failed:', geocoderError);
-            setCurrentLocation(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-        }
-    };
 
     const handleLocationPress = async () => {
         if (locationStatus === 'denied' || locationStatus === 'blocked') {
@@ -136,14 +114,26 @@ const FeedScreen = ({ navigation }: any) => {
         }
     }, [refreshUser]);
 
-    const filteredRequests = requests.filter(item => {
-        const query = searchQuery.toLowerCase();
-        return (
-            item.title?.toLowerCase().includes(query) ||
-            item.description?.toLowerCase().includes(query) ||
-            item.service_categories?.name?.toLowerCase().includes(query)
-        );
-    });
+    const processedRequests = React.useMemo(() => {
+        const result = [];
+        const filtered = requests.filter(item => {
+            const query = searchQuery.toLowerCase();
+            return (
+                item.title?.toLowerCase().includes(query) ||
+                item.description?.toLowerCase().includes(query) ||
+                item.service_categories?.name?.toLowerCase().includes(query)
+            );
+        });
+
+        for (let i = 0; i < filtered.length; i++) {
+            result.push(filtered[i]);
+            // Insert ad every 3 items
+            if ((i + 1) % 3 === 0 && i !== filtered.length - 1) {
+                result.push({ id: `ad-${i}`, isAd: true });
+            }
+        }
+        return result;
+    }, [requests, searchQuery]);
 
     const toggleSearch = () => {
         if (showSearch) {
@@ -169,75 +159,130 @@ const FeedScreen = ({ navigation }: any) => {
         const categories = item.service_categories?.name || 'General';
         const isMatched = item.category_id === user?.provider?.category_id;
 
+        const slotsRemaining = 3 - (item.unlock_count || 0);
+        const isUrgent = item.created_at && (new Date().getTime() - new Date(item.created_at).getTime() < 24 * 60 * 60 * 1000); // Less than 24h old
+
+        if (item.isAd) {
+            return <NativeAdItem />;
+        }
+
         return (
             <TouchableOpacity
                 style={styles.feedCard}
                 onPress={() => navigation.navigate('ServiceRequestDetails', { requestId: item.id })}
             >
-                <View style={styles.feedHeader}>
-                    <View style={styles.userInfo}>
-                        {item.users?.profile_picture ? (
-                            <Image source={{ uri: item.users.profile_picture }} style={styles.userAvatar} />
-                        ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <Icon name="user" size={16} color={COLORS.primary} />
-                            </View>
+                {/* 1. Header: Category & Slots */}
+                <View style={styles.cardHeader}>
+                    <View style={styles.categoryInfo}>
+                        {getCategoryAsset(categories) && (
+                            <Image
+                                source={getCategoryAsset(categories)}
+                                style={styles.cardCategoryIcon}
+                            />
                         )}
-                        <View>
-                            <Text style={styles.userName}>{item.users?.display_name || 'Customer'}</Text>
-                            <Text style={styles.timeText}>{timeAgo}</Text>
-                        </View>
+                        <Text style={styles.categoryText}>{categories}</Text>
                     </View>
-                    {isMatched && (
+                    {isMatched ? (
                         <View style={styles.matchBadge}>
                             <Icon name="star" size={10} color={COLORS.secondary} />
                             <Text style={styles.matchText}>MATCHED</Text>
                         </View>
+                    ) : (
+                        <View style={[styles.slotsBadge, slotsRemaining <= 1 && styles.lowSlotsBadge]}>
+                            <Icon name="users" size={10} color={slotsRemaining <= 1 ? COLORS.error : COLORS.textSecondary} />
+                            <Text style={[styles.slotsText, slotsRemaining <= 1 && styles.lowSlotsText]}>
+                                {slotsRemaining} {slotsRemaining === 1 ? 'Slot' : 'Slots'} left
+                            </Text>
+                        </View>
                     )}
                 </View>
 
-                {item.media && item.media.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.feedImageContainer}>
-                        {item.media.map((m: any, idx: number) => (
-                            <Image key={idx} source={{ uri: m.image_url }} style={styles.feedImage} />
-                        ))}
-                    </ScrollView>
-                )}
+                {/* 2. Body: Title, Location/Distance */}
+                <View style={styles.bodyContent}>
+                    <View style={styles.titleRow}>
+                        <Text style={styles.feedTitle} numberOfLines={2}>
 
-                <View style={styles.contentBox}>
-                    <Text style={styles.feedTitle}>{item.title}</Text>
-                    <Text style={styles.categoryText}>#{categories}</Text>
+                            {item.title}
+                        </Text>
+                        {isUrgent && (
+                            <View style={styles.urgentBadge}>
+                                <Text style={styles.urgentText}>NEW</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.metaRow}>
+                        {item.location_name && (
+                            <View style={styles.locationTag}>
+                                <Icon name="map-pin" size={12} color={COLORS.textSecondary} />
+                                <Text style={styles.locationTagText}>{item.location_name.split(',')[0]}</Text>
+                            </View>
+                        )}
+                        {item.distance_km !== undefined && item.distance_km !== null && (
+                            <View style={styles.distanceTag}>
+                                <Icon name="navigation" size={12} color={COLORS.textSecondary} />
+                                <Text style={styles.distanceTagText}>
+                                    {item.distance_km < 1 ? 'less than 1 km' : `${item.distance_km} km`}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
                     {item.description && (
                         <Text style={styles.feedDescription} numberOfLines={2}>
                             {item.description}
                         </Text>
                     )}
-                    {(item.location_name || item.distance_km !== undefined) && (
-                        <View style={styles.locationRow}>
-                            <Icon name="map-pin" size={14} color={COLORS.textSecondary} />
-                            <Text style={styles.locationText} numberOfLines={1}>
-                                {item.location_name || 'Nearby'}
-                                {item.distance_km !== null && item.distance_km !== undefined ? ` • ${item.distance_km} km away` : ''}
-                            </Text>
-                        </View>
-                    )}
-                    {item.budget && (
-                        <View style={styles.budgetRow}>
-                            <Icon name="dollar-sign" size={14} color={COLORS.secondary} />
-                            <Text style={styles.budgetText}>
-                                Budget: ₹{item.budget}
-                            </Text>
-                        </View>
-                    )}
+
+                    <View style={styles.badgeRow}>
+                        {item.budget && (
+                            <View style={styles.budgetBadge}>
+                                <Text style={styles.budgetText}>₹{parseFloat(item.budget).toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {item.urgency && (
+                            <View style={[styles.urgencyBadge, (styles as any)[`urgency_${item.urgency}`]]}>
+                                <Text style={styles.urgencyText_badge}>
+                                    Urgency: {item.urgency.toUpperCase()}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
-                <View style={styles.footer}>
+                {/* 3. Media Section */}
+                {item.media && item.media.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.feedImageContainer}>
+                        {item.media.map((m: any, idx: number) => (
+                            <Image key={idx} source={{ uri: m.image_url }} style={styles.feedImage} resizeMode="cover" />
+                        ))}
+                    </ScrollView>
+                )}
+
+                {/* 4. Footer: User Info & Action */}
+                <View style={styles.cardFooter}>
+                    <View style={styles.footerUserInfo}>
+                        {item.users?.profile_picture ? (
+                            <Image source={{ uri: item.users.profile_picture }} style={styles.footerAvatar} />
+                        ) : (
+                            <View style={styles.footerAvatarPlaceholder}>
+                                <Icon name="user" size={14} color={COLORS.primary} />
+                            </View>
+                        )}
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.footerUserName} numberOfLines={1} ellipsizeMode="tail">
+                                {item.users?.display_name || 'Customer'}
+                            </Text>
+                            <Text style={styles.footerTimeText}>{timeAgo}</Text>
+                        </View>
+                    </View>
+
                     <TouchableOpacity
-                        style={styles.respondButton}
+                        style={styles.compactRespondButton}
                         onPress={() => navigation.navigate('ServiceRequestDetails', { requestId: item.id })}
                     >
-                        <Icon name="eye" size={18} color={COLORS.white} />
-                        <Text style={styles.respondText}>View & Contact</Text>
+                        <Text style={styles.respondButtonText}>View & Contact</Text>
+                        <Icon name="chevron-right" size={16} color={COLORS.white} />
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -306,7 +351,7 @@ const FeedScreen = ({ navigation }: any) => {
                 </View>
             ) : (
                 <FlatList
-                    data={filteredRequests}
+                    data={processedRequests}
                     renderItem={renderFeedItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
@@ -422,54 +467,49 @@ const styles = StyleSheet.create({
     },
     feedCard: {
         backgroundColor: COLORS.surface,
-        borderRadius: 20,
+        borderRadius: 24,
         padding: SPACING.lg,
         marginBottom: SPACING.md,
         ...SHADOWS.small,
         borderWidth: 1,
         borderColor: COLORS.border,
     },
-    feedHeader: {
+    cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: SPACING.sm,
+        flexWrap: 'wrap',
+        gap: SPACING.xs,
     },
-    userInfo: {
+    categoryText: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.primary,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        backgroundColor: `${COLORS.primary}08`,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    categoryInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    userAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginRight: SPACING.sm,
-    },
-    avatarPlaceholder: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: `${COLORS.primary}10`,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: SPACING.sm,
-    },
-    userName: {
-        ...TYPOGRAPHY.body,
-        fontWeight: '700',
-        fontSize: 14,
-    },
-    timeText: {
-        ...TYPOGRAPHY.caption,
-        color: COLORS.textSecondary,
+    cardCategoryIcon: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        marginRight: 6,
     },
     matchBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFBEB',
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 8,
         gap: 4,
         borderWidth: 1,
         borderColor: '#FEF3C7',
@@ -479,95 +519,197 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#D97706',
     },
-    feedImageContainer: {
+    slotsBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: `${COLORS.textSecondary}08`,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 6,
+    },
+    lowSlotsBadge: {
+        backgroundColor: '#FFF1F2',
+    },
+    slotsText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: COLORS.textSecondary,
+    },
+    lowSlotsText: {
+        color: COLORS.error,
+    },
+    bodyContent: {
         marginBottom: SPACING.md,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: SPACING.xs,
+        gap: SPACING.sm,
+    },
+    feedTitle: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.text,
+        flex: 1,
+        lineHeight: 24,
+    },
+
+    urgentBadge: {
+        backgroundColor: `${COLORS.secondary}15`,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    urgentText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: COLORS.secondary,
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.md,
+        marginBottom: SPACING.sm,
+        flexWrap: 'wrap',
+    },
+    locationTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    locationTagText: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+    },
+    distanceTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    distanceTagText: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+    },
+    feedDescription: {
+        ...TYPOGRAPHY.bodySecondary,
+        color: '#4B5563',
+        lineHeight: 22,
+        marginBottom: SPACING.md,
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        flexWrap: 'wrap',
+    },
+    budgetBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+    },
+    budgetText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#059669',
+    },
+    urgencyBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    urgency_low: {
+        backgroundColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
+    },
+    urgency_medium: {
+        backgroundColor: '#EFF6FF',
+        borderColor: '#DBEAFE',
+    },
+    urgency_high: {
+        backgroundColor: '#FFF7ED',
+        borderColor: '#FFEDD5',
+    },
+    urgency_urgent: {
+        backgroundColor: '#FEF2F2',
+        borderColor: '#FEE2E2',
+    },
+    urgencyText_badge: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: COLORS.textSecondary,
+    },
+    feedImageContainer: {
+        marginBottom: SPACING.lg,
     },
     feedImage: {
         width: 280,
         height: 180,
-        borderRadius: 12,
-        marginRight: SPACING.sm,
-        backgroundColor: COLORS.surface,
-        borderWidth: 1,
-        borderColor: COLORS.border,
+        borderRadius: 16,
+        marginRight: SPACING.md,
+        backgroundColor: COLORS.background,
     },
-    contentBox: {
-        marginBottom: SPACING.lg,
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: SPACING.md,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
-    feedTitle: {
-        ...TYPOGRAPHY.h3,
-        fontSize: 18,
-        marginBottom: 4,
+    footerUserInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        marginRight: SPACING.md,
+    },
+    footerAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+    },
+    footerAvatarPlaceholder: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: `${COLORS.primary}10`,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    footerUserName: {
+        fontSize: 13,
+        fontWeight: '700',
         color: COLORS.text,
     },
-    categoryText: {
-        ...TYPOGRAPHY.caption,
-        color: COLORS.primary,
-        fontWeight: '700',
-        marginBottom: SPACING.sm,
-    },
-    feedDescription: {
-        ...TYPOGRAPHY.bodySecondary,
-        fontSize: 14,
-        lineHeight: 22,
-        marginBottom: SPACING.xs,
-    },
-    locationRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: SPACING.xs,
-    },
-    locationText: {
-        ...TYPOGRAPHY.caption,
+    footerTimeText: {
+        fontSize: 11,
         color: COLORS.textSecondary,
-        flex: 1,
     },
-    budgetRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: SPACING.xs,
-    },
-    budgetText: {
-        ...TYPOGRAPHY.caption,
-        color: COLORS.secondary,
-        fontWeight: '700',
-    },
-    footer: {
-        flexDirection: 'row',
-        gap: SPACING.sm,
-    },
-    respondButton: {
-        flex: 1,
+    compactRespondButton: {
         backgroundColor: COLORS.primary,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 12,
-        gap: 8,
+        gap: 6,
         ...SHADOWS.small,
     },
-    respondText: {
+    respondButtonText: {
         color: COLORS.white,
         fontWeight: '700',
-        fontSize: 14,
-    },
-    detailsButton: {
-        flex: 1,
-        backgroundColor: COLORS.surface,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-    },
-    detailsText: {
-        color: COLORS.text,
-        fontWeight: '600',
-        fontSize: 14,
+        fontSize: 13,
     },
     centerContainer: {
         flex: 1,

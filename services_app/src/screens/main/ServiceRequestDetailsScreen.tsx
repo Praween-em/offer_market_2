@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, Alert, useWindowDimensions, Platform, Modal, Dimensions } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import api from '../../services/api';
@@ -9,14 +8,17 @@ import { useAuth } from '../../context/AuthContext';
 import AdGateModal from '../../components/AdGateModal';
 import ConsentModal from '../../components/ConsentModal';
 import ReportModal from '../../components/ReportModal';
+const { width } = Dimensions.get('window');
 
 const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
+    const { width: SCREEN_WIDTH } = useWindowDimensions();
     const { requestId } = route.params;
     const [request, setRequest] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const [unlockStatus, setUnlockStatus] = useState<any>(null);
     const [showAdGate, setShowAdGate] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [showConsentModal, setShowConsentModal] = useState(false);
     const [isUnlocking, setIsUnlocking] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -73,7 +75,21 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                 }
                 trackAction(type);
             } else {
-                Alert.alert('Error', 'Contact details unlocked but not available. Please try again.');
+                // If unlocked but phone missing, try to refresh details once
+                setLoading(true);
+                try {
+                    await fetchDetails();
+                    if (request?.users?.phone) {
+                        // Retry the action after refresh
+                        handleContactPress(type);
+                    } else {
+                        Alert.alert('Error', 'Contact details unlocked but not available. Please contact support.');
+                    }
+                } catch (e) {
+                    Alert.alert('Error', 'Failed to refresh contact details.');
+                } finally {
+                    setLoading(false);
+                }
             }
             return;
         }
@@ -150,6 +166,8 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
         console.warn('Date parsing error', e);
     }
 
+    const isUrgent = request?.created_at && (new Date().getTime() - new Date(request.created_at).getTime() < 24 * 60 * 60 * 1000);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -157,71 +175,117 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                     <Icon name="arrow-left" size={24} color={COLORS.text} />
                 </TouchableOpacity>
                 <Text style={TYPOGRAPHY.h2}>Request Details</Text>
-                {unlockStatus?.hasUnlocked ? (
-                    <TouchableOpacity onPress={() => setShowReportModal(true)} style={styles.reportHeaderButton}>
-                        <Icon name="flag" size={20} color={COLORS.error} />
-                    </TouchableOpacity>
-                ) : (
-                    <View style={{ width: 40 }} />
-                )}
+                <TouchableOpacity onPress={() => setShowReportModal(true)} style={styles.reportHeaderButton}>
+                    <Icon name="flag" size={20} color={COLORS.error} />
+                </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {request?.media && request.media.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaGallery}>
                         {request.media.map((m: any, idx: number) => (
-                            <Image key={idx} source={{ uri: m.image_url }} style={styles.galleryImage} />
+                            <TouchableOpacity
+                                key={idx}
+                                activeOpacity={0.9}
+                                onPress={() => setSelectedImage(m.image_url)}
+                                style={styles.imageWrapper}
+                            >
+                                <Image source={{ uri: m.image_url }} style={styles.galleryImage} resizeMode="contain" />
+                            </TouchableOpacity>
                         ))}
                     </ScrollView>
                 )}
 
-                <View style={styles.categoryBadge}>
-                    <Icon name="tag" size={14} color={COLORS.primary} />
-                    <Text style={styles.categoryName}>
-                        {request?.service_categories?.name || 'Service'}
-                    </Text>
-                </View>
-
-                <Text style={styles.title}>{request?.title}</Text>
-                <View style={styles.metaRow}>
-                    <Text style={styles.timeText}>Posted {timeAgo}</Text>
-                    {request?.distance_km !== undefined && request?.distance_km !== null && (
-                        <View style={styles.distanceBadge}>
-                            <Icon name="navigation" size={10} color={COLORS.secondary} />
-                            <Text style={styles.distanceText}>{request.distance_km} km away</Text>
-                        </View>
-                    )}
-                </View>
-
-                {request?.location_name && (
-                    <View style={styles.locationSection}>
-                        <Icon name="map-pin" size={16} color={COLORS.textSecondary} />
-                        <Text style={styles.locationValue}>{request.location_name}</Text>
+                <View style={styles.headerInfo}>
+                    <View style={styles.categoryRow}>
+                        <Text style={styles.categoryName}>
+                            {request?.service_categories?.name || 'Service'}
+                        </Text>
+                        {request?.location_name && (
+                            <View style={styles.smallLocationBadge}>
+                                <Icon name="map-pin" size={10} color={COLORS.primary} />
+                                <Text style={styles.smallLocationText} numberOfLines={1}>
+                                    {request.location_name.split(',')[0]}
+                                </Text>
+                            </View>
+                        )}
                     </View>
-                )}
+                    <View style={styles.metaRow}>
+                        <Text style={styles.timeText}>Posted {timeAgo}</Text>
+                        {request?.distance_km !== undefined && request?.distance_km !== null && (
+                            <View style={styles.distanceBadge}>
+                                <Icon name="navigation" size={10} color={COLORS.secondary} />
+                                <Text style={styles.distanceText}>{request.distance_km < 1 ? '< 1 km' : `${request.distance_km} km`} away</Text>
+                            </View>
+                        )}
+                        {unlockStatus && (
+                            <View style={[styles.slotsBadge, (3 - unlockStatus.unlockCount) <= 1 && styles.lowSlotsBadge]}>
+                                <Icon name="users" size={10} color={(3 - unlockStatus.unlockCount) <= 1 ? COLORS.error : COLORS.textSecondary} />
+                                <Text style={[styles.slotsText, (3 - unlockStatus.unlockCount) <= 1 && styles.lowSlotsText]}>
+                                    {3 - unlockStatus.unlockCount} {(3 - unlockStatus.unlockCount) === 1 ? 'Slot' : 'Slots'} left
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                <View style={styles.mainContent}>
+                    <View style={styles.titleRow}>
+                        <Text style={styles.title}>
+                            {request?.title}
+                        </Text>
+                        {isUrgent && (
+                            <View style={styles.urgentBadge}>
+                                <Text style={styles.urgentText}>NEW</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.badgeRow}>
+                        {request?.budget && (
+                            <View style={styles.budgetBadge}>
+                                <Text style={styles.budgetText}>₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {request?.urgency && (
+                            <View style={[styles.urgencyBadge, (styles as any)[`urgency_${request.urgency}`]]}>
+                                <Text style={styles.urgencyText_badge}>
+                                    Urgency: {request.urgency.toUpperCase()}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>Description</Text>
+                        <Text style={styles.description}>{request?.description || 'No description provided.'}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.divider} />
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>Customer</Text>
+                    <Text style={styles.sectionLabel}>Customer Information</Text>
                     <View style={styles.userCard}>
                         {request?.users?.profile_picture ? (
                             <Image source={{ uri: request.users.profile_picture }} style={styles.userAvatar} />
                         ) : (
                             <View style={styles.avatarPlaceholder}>
-                                <Icon name="user" size={20} color={COLORS.primary} />
+                                <Icon name="user" size={24} color={COLORS.primary} />
                             </View>
                         )}
                         <View style={styles.userInfo}>
                             <Text style={styles.userName}>{request?.users?.display_name || 'Anonymous'}</Text>
-                            <Text style={styles.userPhone}>
-                                {unlockStatus?.hasUnlocked ? 'Contact information revealed' : 'Tap below to unlock contact'}
+                            <Text style={styles.userStatus}>
+                                {unlockStatus?.hasUnlocked ? 'Contact details visible' : 'Contact locked'}
                             </Text>
                         </View>
+                        {!unlockStatus?.hasUnlocked && (
+                            <Icon name="lock" size={16} color={COLORS.textSecondary} />
+                        )}
                     </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>Description</Text>
-                    <Text style={styles.description}>{request?.description || 'No description provided.'}</Text>
                 </View>
 
                 <View style={styles.spacer} />
@@ -282,6 +346,23 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                 title="Report Service Request"
                 subtitle="Why are you reporting this request? This helps us keep the platform safe."
             />
+
+            {/* Full Screen Image Viewer Modal */}
+            {selectedImage && (
+                <View style={styles.fullScreenModal}>
+                    <TouchableOpacity
+                        style={styles.closeModal}
+                        onPress={() => setSelectedImage(null)}
+                    >
+                        <Icon name="x" size={30} color="#FFF" />
+                    </TouchableOpacity>
+                    <Image
+                        source={{ uri: selectedImage }}
+                        style={styles.fullImage}
+                        resizeMode="contain"
+                    />
+                </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -317,45 +398,92 @@ const styles = StyleSheet.create({
         padding: SPACING.lg,
     },
     mediaGallery: {
-        marginBottom: SPACING.lg,
+        marginBottom: SPACING.xl,
     },
     galleryImage: {
-        width: 250,
-        height: 180,
-        borderRadius: 16,
-        marginRight: SPACING.md,
+        width: width - SPACING.lg * 2,
+        height: 250,
+        borderRadius: 12,
     },
-    categoryBadge: {
-        flexDirection: 'row',
+    imageWrapper: {
+        width: width - SPACING.lg * 2,
+        height: 250,
+        marginRight: SPACING.md,
+        borderRadius: 24,
+        backgroundColor: '#F3F4F6',
+        ...SHADOWS.medium,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    fullScreenModal: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: `${COLORS.primary}10`,
+        zIndex: 1000,
+    },
+    closeModal: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 60 : 40,
+        right: 20,
+        zIndex: 1001,
+        padding: 10,
+    },
+    fullImage: {
+        width: '100%',
+        height: '90%',
+    },
+    headerInfo: {
+        marginBottom: SPACING.lg,
+    },
+    categoryName: {
+        fontSize: 14,
+        color: COLORS.primary,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        backgroundColor: `${COLORS.primary}08`,
         alignSelf: 'flex-start',
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 8,
-        gap: 6,
+        borderRadius: 6,
+    },
+    categoryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: SPACING.sm,
     },
-    categoryName: {
-        color: COLORS.primary,
-        fontWeight: '700',
-        fontSize: 12,
+    smallLocationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: `${COLORS.primary}05`,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        maxWidth: '50%',
     },
-    title: {
-        ...TYPOGRAPHY.h1,
-        fontSize: 24,
-        color: COLORS.text,
-        marginBottom: 4,
-    },
-    timeText: {
+    smallLocationText: {
         ...TYPOGRAPHY.caption,
+        fontSize: 10,
+        fontWeight: '700',
         color: COLORS.textSecondary,
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: SPACING.xl,
+        gap: SPACING.md,
+        flexWrap: 'wrap',
+    },
+    timeText: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+        fontWeight: '500',
     },
     distanceBadge: {
         flexDirection: 'row',
@@ -371,49 +499,156 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: COLORS.secondary,
     },
-    locationSection: {
+    slotsBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: SPACING.lg,
-        backgroundColor: '#F8F9FA',
-        padding: 12,
-        borderRadius: 12,
+        backgroundColor: `${COLORS.textSecondary}08`,
+        paddingHorizontal: 10,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 6,
     },
-    locationValue: {
-        ...TYPOGRAPHY.body,
-        color: COLORS.text,
-        fontSize: 14,
+    lowSlotsBadge: {
+        backgroundColor: '#FFF1F2',
     },
-    section: {
-        marginBottom: SPACING.xl,
-    },
-    sectionLabel: {
-        ...TYPOGRAPHY.bodySecondary,
+    slotsText: {
+        fontSize: 10,
         fontWeight: '700',
         color: COLORS.textSecondary,
+    },
+    lowSlotsText: {
+        color: COLORS.error,
+    },
+    mainContent: {
+        backgroundColor: COLORS.surface,
+        borderRadius: 24,
+        padding: SPACING.lg,
+        ...SHADOWS.small,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        marginBottom: SPACING.xl,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: SPACING.md,
+        gap: SPACING.sm,
+    },
+    title: {
+        ...TYPOGRAPHY.h1,
+        color: COLORS.text,
+        flex: 1,
+        lineHeight: 32,
+    },
+    serviceLabel: {
+        color: COLORS.textSecondary,
+        fontWeight: '800',
+    },
+    urgentBadge: {
+        backgroundColor: `${COLORS.secondary}15`,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    urgentText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: COLORS.secondary,
+        letterSpacing: 0.5,
+    },
+
+    section: {
+        marginBottom: SPACING.lg,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
         marginBottom: SPACING.sm,
+    },
+    description: {
+        ...TYPOGRAPHY.body,
+        lineHeight: 26,
+        color: '#374151',
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        flexWrap: 'wrap',
+        marginBottom: SPACING.md,
+    },
+    budgetBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+    },
+    budgetText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#059669',
+    },
+    urgencyBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        borderWidth: 1,
+    },
+    urgency_low: {
+        backgroundColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
+    },
+    urgency_medium: {
+        backgroundColor: '#EFF6FF',
+        borderColor: '#DBEAFE',
+    },
+    urgency_high: {
+        backgroundColor: '#FFF7ED',
+        borderColor: '#FFEDD5',
+    },
+    urgency_urgent: {
+        backgroundColor: '#FEF2F2',
+        borderColor: '#FEE2E2',
+    },
+    urgencyText_badge: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: COLORS.textSecondary,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: COLORS.border,
+        marginBottom: SPACING.xl,
     },
     userCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.surface,
         padding: SPACING.md,
-        borderRadius: 16,
+        borderRadius: 20,
         ...SHADOWS.small,
         borderWidth: 1,
         borderColor: COLORS.border,
     },
     userAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         marginRight: SPACING.md,
     },
     avatarPlaceholder: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         backgroundColor: `${COLORS.primary}10`,
         justifyContent: 'center',
         alignItems: 'center',
@@ -423,20 +658,18 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     userName: {
-        ...TYPOGRAPHY.body,
+        fontSize: 18,
         fontWeight: '700',
-    },
-    userPhone: {
-        ...TYPOGRAPHY.caption,
-        color: COLORS.textSecondary,
-    },
-    description: {
-        ...TYPOGRAPHY.body,
-        lineHeight: 24,
         color: COLORS.text,
+        marginBottom: 2,
+    },
+    userStatus: {
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        fontWeight: '500',
     },
     spacer: {
-        height: 100,
+        height: 140,
     },
     footer: {
         position: 'absolute',
@@ -449,14 +682,15 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
         gap: SPACING.md,
+        ...SHADOWS.medium,
     },
     actionButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 14,
-        borderRadius: 14,
+        paddingVertical: 16,
+        borderRadius: 16,
         gap: 10,
         ...SHADOWS.small,
     },
@@ -467,15 +701,15 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
     },
     unlockButton: {
-        backgroundColor: '#FF4757',
+        backgroundColor: COLORS.error,
     },
     disabledButton: {
         opacity: 0.6,
     },
     actionButtonText: {
-        color: COLORS.white,
+        ...TYPOGRAPHY.button,
+        fontSize: 15,
         fontWeight: '700',
-        fontSize: 16,
     },
 });
 
