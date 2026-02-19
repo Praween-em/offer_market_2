@@ -341,22 +341,20 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                 </View>
             </ScrollView>
 
-            {/* Inactive Warning */}
-            {request.unlock_count >= 3 && request.status !== 'cancelled' && (
-                <View style={styles.inactiveWarning}>
-                    <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#C92A2A" />
-                    <Text style={styles.inactiveWarningText}>
-                        3 service providers have contacted you. This request is now inactive.
-                    </Text>
-                </View>
-            )}
-
-            {/* Bottom Action Bar */}
-            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+            {/* Bottom Action Area */}
+            <View style={styles.bottomBar}>
+                {request.unlock_count >= 3 && request.status !== 'cancelled' && (
+                    <View style={styles.inactiveWarning}>
+                        <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#C92A2A" />
+                        <Text style={styles.inactiveWarningText}>
+                            3 providers contacted you. This request is now inactive.
+                        </Text>
+                    </View>
+                )}
                 {loading ? (
                     <ActivityIndicator size="large" color="#2D3436" style={{ flex: 1 }} />
                 ) : (
-                    <>
+                    <View style={styles.bottomBtnRow}>
                         {request.status === 'cancelled' ? (
                             <TouchableOpacity style={styles.reactivateBtn} onPress={handleReactivate}>
                                 <Text style={styles.reactivateBtnText}>Reactivate Request</Text>
@@ -384,7 +382,7 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                                 </TouchableOpacity>
                             </>
                         )}
-                    </>
+                    </View>
                 )}
             </View>
 
@@ -595,17 +593,18 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFF',
-        flexDirection: 'row',
+        flexDirection: 'column',
         paddingHorizontal: 20,
-        paddingTop: 16,
-        gap: 12,
+        paddingTop: 12,
+        paddingBottom: 24,
+        gap: 10,
+        backgroundColor: '#FFF',
         borderTopWidth: 1,
         borderTopColor: '#F1F2F6',
+    },
+    bottomBtnRow: {
+        flexDirection: 'row',
+        gap: 12,
     },
     editBtn: {
         flex: 1,
@@ -643,8 +642,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF5F5',
         padding: 12,
         borderRadius: 12,
-        marginHorizontal: 20,
-        marginBottom: 20,
         gap: 12,
         borderWidth: 1,
         borderColor: '#FFC9C9',
