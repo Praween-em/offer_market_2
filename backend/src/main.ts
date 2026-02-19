@@ -10,10 +10,15 @@ import { PrismaService } from './prisma/prisma.service';
 };
 
 // Decimal polyfill (Prisma uses decimal.js)
-const Decimal = require('decimal.js');
-(Decimal.prototype as any).toJSON = function () {
-  return this.toString();
-};
+try {
+  const Decimal = require('decimal.js');
+  (Decimal.prototype as any).toJSON = function () {
+    return this.toString();
+  };
+  console.log('✅ Decimal polyfill applied');
+} catch (e) {
+  console.warn('⚠️ decimal.js not found, skipping Decimal polyfill');
+}
 
 async function bootstrap() {
   try {
