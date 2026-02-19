@@ -42,7 +42,10 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
     }, []);
 
     const fetchRequestDetails = async () => {
-        if (!request?.id) return;
+        if (!request?.id) {
+            setLoading(false);
+            return;
+        }
         try {
             console.log('Fetching details for request:', request.id);
             const response = await api.get(`/services/request/${request.id}`);
@@ -62,6 +65,8 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
             }
         } catch (error) {
             console.error('Error fetching request details:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
