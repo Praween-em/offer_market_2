@@ -177,5 +177,11 @@ export class ServicesController {
     ) {
         return this.servicesService.reportServiceRequest(id, req.user.userId, reason, notes);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('request/:id/mark-viewed')
+    async markRequestAsViewed(@Req() req, @Param('id') id: string) {
+        return this.servicesService.markRequestAsViewed(id, req.user.userId);
+    }
 }
 

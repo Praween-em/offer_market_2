@@ -149,8 +149,8 @@ export class UsersService {
             select: { full_name_xml: true, photo_base64: true }
         });
 
-        const isVerified = !!verification;
-        const finalDisplayName = isVerified ? verification.full_name_xml : data.display_name;
+        const isVerified = !!verification && !!verification.full_name_xml;
+        const finalDisplayName = isVerified ? verification.full_name_xml : (data.display_name || undefined);
         // BUG FIX: Do NOT prioritize Aadhar photo over provided profile picture
         const finalProfilePicture = data.profile_picture || ((isVerified && verification.photo_base64) ? verification.photo_base64 : undefined);
 
@@ -177,16 +177,22 @@ export class UsersService {
         }
 
         // 3. Update Service Provider (Professional Identity)
+        // 3. Update Service Provider (Professional Identity)
+        const providerUpdateData: any = {
+            bio: data.bio,
+            experience_years: data.experience_years,
+            service_area: data.service_area,
+            whatsapp_number: data.whatsapp_number,
+            profile_picture: finalProfilePicture,
+        };
+
+        if (finalDisplayName) {
+            providerUpdateData.display_name = finalDisplayName;
+        }
+
         await this.prisma.service_providers.updateMany({
             where: { user_id: userId },
-            data: {
-                display_name: finalDisplayName, // Professional name usually matches personal name unless verified
-                bio: data.bio,
-                experience_years: data.experience_years,
-                service_area: data.service_area,
-                whatsapp_number: data.whatsapp_number,
-                profile_picture: finalProfilePicture,
-            } as any,
+            data: providerUpdateData,
         });
 
         return this.getProfile(userId);

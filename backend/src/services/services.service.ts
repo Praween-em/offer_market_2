@@ -186,6 +186,7 @@ export class ServicesService {
                 services: {
                     include: {
                         service_categories: true,
+                        service_images: true,
                     },
                 },
                 service_portfolios: true,
@@ -258,6 +259,7 @@ export class ServicesService {
                 services: {
                     include: {
                         service_categories: true,
+                        service_images: true,
                     },
                 },
                 service_portfolios: true,
@@ -270,12 +272,12 @@ export class ServicesService {
         return this.prisma.services.create({
             data: {
                 provider_id: providerId,
-                category_id: serviceData.categoryId,
+                category_id: serviceData.categoryId && serviceData.categoryId.trim() !== '' ? serviceData.categoryId : null,
                 title: serviceData.title,
                 description: serviceData.description,
                 price: serviceData.price,
                 price_unit: serviceData.priceUnit || 'service',
-                service_images: images ? {
+                service_images: images && images.length > 0 ? {
                     create: images.map(url => ({ image_url: url }))
                 } : undefined
             },
@@ -296,12 +298,14 @@ export class ServicesService {
             where: { id: serviceId },
             data: {
                 title: data.title,
-                category_id: data.categoryId,
+                category_id: data.categoryId !== undefined
+                    ? (data.categoryId && data.categoryId.trim() !== '' ? data.categoryId : null)
+                    : undefined,
                 description: data.description,
                 price: data.price,
                 price_unit: data.priceUnit,
                 is_active: data.isActive,
-                service_images: data.images ? {
+                service_images: data.images && data.images.length > 0 ? {
                     deleteMany: {},
                     create: data.images.map(url => ({ image_url: url }))
                 } : undefined
@@ -349,6 +353,8 @@ export class ServicesService {
         images?: string[];
         latitude?: number;
         longitude?: number;
+        budget?: number;
+        urgency?: string;
     }) {
         // Optional: Get location name if coordinates provided
         let locationName: string | null = null;
@@ -368,6 +374,8 @@ export class ServicesService {
                 latitude: data.latitude,
                 longitude: data.longitude,
                 location_name: locationName,
+                budget: data.budget,
+                urgency: data.urgency || 'medium',
                 users: {
                     connect: { id: userId }
                 },
@@ -538,7 +546,7 @@ export class ServicesService {
     }
 
     async findRequestsByUserId(userId: string) {
-        return this.prisma.service_requests.findMany({
+        const requests = await this.prisma.service_requests.findMany({
             where: { user_id: userId },
             include: {
                 media: true,
@@ -546,6 +554,45 @@ export class ServicesService {
             },
             orderBy: { created_at: 'desc' }
         });
+
+        // For each request, calculate new activity
+        const requestsWithActivity = await Promise.all(
+            requests.map(async (request) => {
+                // Count total unlocks
+                const unlockCount = await this.prisma.lead_unlocks.count({
+                    where: { lead_id: request.id },
+                });
+
+                // Count new unlocks since last viewed
+                const lastViewed = request.last_viewed_at || request.created_at;
+                const newUnlockCount = await this.prisma.lead_unlocks.count({
+                    where: {
+                        lead_id: request.id,
+                        revealed_at: {
+                            gt: lastViewed,
+                        },
+                    },
+                });
+
+                // Get latest activity timestamp
+                const latestUnlock = await this.prisma.lead_unlocks.findFirst({
+                    where: { lead_id: request.id },
+                    orderBy: { revealed_at: 'desc' },
+                    select: { revealed_at: true },
+                });
+
+                return {
+                    ...request,
+                    unlock_count: unlockCount,
+                    new_unlock_count: newUnlockCount,
+                    has_new_activity: newUnlockCount > 0,
+                    latest_activity_at: latestUnlock?.revealed_at || null,
+                };
+            })
+        );
+
+        console.log('Sample request with activity:', requestsWithActivity[0]);
+        return requestsWithActivity;
     }
 
     async findProviderFeed(userId: string, lat?: number, lng?: number) {
@@ -714,7 +761,7 @@ export class ServicesService {
     }
 
     async findRequestDetails(requestId: string, providerUserId?: string) {
-        // 1. Check if the provider has already unlocked this lead
+        // 1. Check if the provider has already unlocked this lead (for provider view)
         let hasUnlocked = false;
         if (providerUserId) {
             const unlock = await this.prisma.lead_unlocks.findUnique({
@@ -753,8 +800,56 @@ export class ServicesService {
 
         let result = this.convertBigIntToNumber(request);
 
-        // Add distance if providerUserId is provided
-        if (providerUserId && (request as any).latitude && (request as any).longitude) {
+        // 2. If the requester is the OWNER, attach the list of "Responses & Bids" (providers who unlocked)
+        if (providerUserId && request.user_id === providerUserId) {
+            const unlocks = await this.prisma.lead_unlocks.findMany({
+                where: { lead_id: requestId },
+                include: {
+                    users: {
+                        select: {
+                            id: true,
+                            display_name: true,
+                            profile_picture: true,
+                            service_providers: {
+                                select: {
+                                    id: true,
+                                    is_verified: true,
+                                    average_rating: true,
+                                    total_reviews: true,
+                                    category_id: true,
+                                    display_name: true,
+                                    service_categories: {
+                                        select: { name: true }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { revealed_at: 'desc' }
+            });
+
+            result.interested_providers = unlocks.map(u => ({
+                unlock_id: u.unlock_id,
+                revealed_at: u.revealed_at,
+                provider: {
+                    user_id: u.users.id,
+                    display_name: u.users.display_name || u.users.service_providers?.display_name || 'Service Provider',
+                    profile_picture: u.users.profile_picture,
+                    id: u.users.service_providers?.id,
+                    is_verified: u.users.service_providers?.is_verified,
+                    rating: u.users.service_providers?.average_rating,
+                    reviews: u.users.service_providers?.total_reviews,
+                    category_name: u.users.service_providers?.service_categories?.name
+                }
+            }));
+
+            // Ensure numbers are converted for this new array as well
+            result.interested_providers = this.convertBigIntToNumber(result.interested_providers);
+        }
+
+        // Add distance if providerUserId is provided AND it's NOT the owner (i.e. viewing as a provider)
+        if (providerUserId && request.user_id !== providerUserId && (request as any).latitude && (request as any).longitude) {
             const provider: any = await this.prisma.service_providers.findUnique({
                 where: { user_id: providerUserId },
                 select: { latitude: true, longitude: true } as any
@@ -810,6 +905,21 @@ export class ServicesService {
                 status: 'cancelled',
                 updated_at: new Date()
             }
+        });
+    }
+
+    async markRequestAsViewed(requestId: string, userId: string) {
+        const request = await this.prisma.service_requests.findFirst({
+            where: { id: requestId, user_id: userId }
+        });
+
+        if (!request) {
+            throw new Error('Request not found or unauthorized');
+        }
+
+        return this.prisma.service_requests.update({
+            where: { id: requestId },
+            data: { last_viewed_at: new Date() }
         });
     }
 

@@ -139,10 +139,11 @@ export class RevealContactController {
             // 7. Send Push Notification if it was a new unlock
             if (!result.alreadyUnlocked) {
                 try {
+                    console.log(`[RevealContact] Sending notification to customer ${result.customerId} from worker ${result.workerName}`);
                     await this.notificationsService.sendPushNotification(
                         result.customerId,
                         'Service Provider Connected! 🚀',
-                        `${result.workerName} has unlocked your request "${result.leadTitle}" and may contact you soon!`,
+                        `${result.workerName || 'A service provider'} has unlocked your request "${result.leadTitle}" and may contact you soon!`,
                         {
                             type: 'LEAD_UNLOCKED',
                             leadId: leadId,

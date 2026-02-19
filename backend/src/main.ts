@@ -4,9 +4,15 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
 
-// Polyfill for BigInt serialization
+// Polyfill for BigInt & Decimal serialization
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
+};
+
+// Decimal polyfill (Prisma uses decimal.js)
+const Decimal = require('decimal.js');
+(Decimal.prototype as any).toJSON = function () {
+  return this.toString();
 };
 
 async function bootstrap() {
@@ -110,6 +116,12 @@ async function bootstrap() {
         CREATE INDEX IF NOT EXISTS "affiliate_stores_is_active_display_order_idx" 
         ON "affiliate_stores"("is_active", "display_order");
       `);
+
+      // --- Service Request Enhancements (Budget & Urgency) ---
+      console.log('Syncing service_requests enhancements...');
+      await prisma.$executeRawUnsafe('ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "budget" DECIMAL(12,2);');
+      await prisma.$executeRawUnsafe('ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "urgency" VARCHAR(20) DEFAULT \'medium\';');
+      await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "idx_service_requests_urgency" ON "service_requests"("urgency");');
 
       console.log('✅ Database schema sync completed.');
     } catch (syncError) {
