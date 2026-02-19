@@ -128,6 +128,10 @@ async function bootstrap() {
       await prisma.$executeRawUnsafe('ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "urgency" VARCHAR(20) DEFAULT \'medium\';');
       await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "idx_service_requests_urgency" ON "service_requests"("urgency");');
 
+      // --- Activity Tracking (last_viewed_at) ---
+      await prisma.$executeRawUnsafe('ALTER TABLE "service_requests" ADD COLUMN IF NOT EXISTS "last_viewed_at" TIMESTAMPTZ(6);');
+      await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "idx_service_requests_last_viewed" ON "service_requests"("last_viewed_at");');
+
       console.log('✅ Database schema sync completed.');
     } catch (syncError) {
       console.warn('⚠️ Schema sync warning (non-fatal):', syncError.message);
