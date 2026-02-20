@@ -34,8 +34,17 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
-    CREATE TYPE notification_type_enum AS ENUM ('new_offer', 'offer_expiring', 'offer_approved', 'offer_rejected', 'generic');
+    CREATE TYPE notification_type_enum AS ENUM ('new_offer', 'offer_expiring', 'offer_approved', 'offer_rejected', 'generic', 'NEW_REQUEST', 'LEAD_UNLOCKED');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Patch: Add missing enum values to existing databases (safe to run multiple times)
+DO $$ BEGIN
+    ALTER TYPE notification_type_enum ADD VALUE IF NOT EXISTS 'NEW_REQUEST';
+EXCEPTION WHEN others THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER TYPE notification_type_enum ADD VALUE IF NOT EXISTS 'LEAD_UNLOCKED';
+EXCEPTION WHEN others THEN null; END $$;
 
 DO $$ BEGIN
     CREATE TYPE offer_status_enum AS ENUM ('draft', 'pending', 'active', 'paused', 'expired', 'rejected');

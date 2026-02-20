@@ -9,14 +9,17 @@ import {
     ScrollView,
     Alert,
     KeyboardAvoidingView,
-    Platform,
     Switch,
     ActivityIndicator,
+    Image,
+    Platform,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { getCategoryAsset } from '../../utils/CategoryAssets';
 
 const AddServiceScreen = ({ navigation, route }: any) => {
     const { user } = useAuth();
@@ -32,6 +35,8 @@ const AddServiceScreen = ({ navigation, route }: any) => {
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(false);
+    const [serviceImages, setServiceImages] = useState<string[]>(initialService.service_images?.map((si: any) => si.image_url) || []);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         fetchSubCategories();
@@ -71,6 +76,52 @@ const AddServiceScreen = ({ navigation, route }: any) => {
 
     const priceUnits = ['visit', 'hour', 'day', 'sqft', 'item', 'session', 'job'];
 
+    const pickImage = async () => {
+        if (serviceImages.length >= 2) {
+            Alert.alert('Limit Reached', 'You can upload up to 2 images per service.');
+            return;
+        }
+
+        const result = await launchImageLibrary({
+            mediaType: 'photo',
+            quality: 0.7,
+        });
+
+        if (result.assets && result.assets.length > 0) {
+            const asset = result.assets[0];
+            uploadImage(asset);
+        }
+    };
+
+    const uploadImage = async (asset: any) => {
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', {
+                uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+                type: asset.type,
+                name: asset.fileName || 'service_work.jpg',
+            } as any);
+
+            const response = await api.post('/bunny/upload?folder=services', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            setServiceImages(prev => [...prev, response.data.url]);
+        } catch (error) {
+            console.error('Upload failed', error);
+            Alert.alert('Error', 'Could not upload photo.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setServiceImages(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSave = async () => {
         if (!title.trim()) {
             Alert.alert('Error', 'Service title is required');
@@ -90,6 +141,7 @@ const AddServiceScreen = ({ navigation, route }: any) => {
             price: parseFloat(price),
             priceUnit,
             isActive,
+            images: serviceImages,
         };
 
         try {
@@ -158,12 +210,20 @@ const AddServiceScreen = ({ navigation, route }: any) => {
                                                     ]}
                                                     onPress={() => setCategoryId(sub.id)}
                                                 >
-                                                    <Text style={[
-                                                        styles.categoryChipText,
-                                                        categoryId === sub.id && styles.categoryChipTextSelected
-                                                    ]}>
-                                                        {sub.name}
-                                                    </Text>
+                                                    <View style={styles.chipContent}>
+                                                        {getCategoryAsset(sub.name) && (
+                                                            <Image
+                                                                source={getCategoryAsset(sub.name)}
+                                                                style={styles.chipIcon}
+                                                            />
+                                                        )}
+                                                        <Text style={[
+                                                            styles.categoryChipText,
+                                                            categoryId === sub.id && styles.categoryChipTextSelected
+                                                        ]}>
+                                                            {sub.name}
+                                                        </Text>
+                                                    </View>
                                                 </TouchableOpacity>
                                             ))}
                                         </View>
@@ -183,8 +243,46 @@ const AddServiceScreen = ({ navigation, route }: any) => {
                             onChangeText={setDescription}
                             multiline
                             numberOfLines={4}
-                            textAlignVertical="top"
                         />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <View style={styles.labelRow}>
+                            <Text style={styles.label}>Work Images (Max 2)</Text>
+                            <Text style={styles.helperText}>{serviceImages.length}/2</Text>
+                        </View>
+                        <View style={styles.imageGallery}>
+                            {serviceImages.map((uri, index) => (
+                                <View key={index} style={styles.imageWrapper}>
+                                    <Image source={{ uri }} style={styles.previewImage} />
+                                    <TouchableOpacity
+                                        style={styles.removeBadge}
+                                        onPress={() => removeImage(index)}
+                                    >
+                                        <Icon name="x" size={12} color={COLORS.white} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                            {serviceImages.length < 2 && (
+                                <TouchableOpacity
+                                    style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled]}
+                                    onPress={pickImage}
+                                    disabled={isUploading}
+                                >
+                                    {isUploading ? (
+                                        <ActivityIndicator color={COLORS.primary} />
+                                    ) : (
+                                        <>
+                                            <Icon name="plus" size={24} color={COLORS.primary} />
+                                            <Text style={styles.uploadText}>Add Photo</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <Text style={styles.switchSubLabel}>
+                            Show potential customers your actual work.
+                        </Text>
                     </View>
 
                     <View style={styles.row}>
@@ -296,6 +394,64 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.xs,
         color: COLORS.text,
     },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: SPACING.xs,
+    },
+    helperText: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+    },
+    imageGallery: {
+        flexDirection: 'row',
+        gap: SPACING.md,
+        marginBottom: SPACING.sm,
+    },
+    imageWrapper: {
+        position: 'relative',
+        width: 100,
+        height: 100,
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 12,
+        backgroundColor: `${COLORS.primary}05`,
+    },
+    removeBadge: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        backgroundColor: COLORS.error,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.small,
+    },
+    uploadBtn: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+    },
+    uploadBtnDisabled: {
+        opacity: 0.6,
+    },
+    uploadText: {
+        fontSize: 10,
+        color: COLORS.primary,
+        fontWeight: '700',
+        marginTop: 4,
+    },
     input: {
         backgroundColor: COLORS.surface,
         borderWidth: 1,
@@ -363,6 +519,16 @@ const styles = StyleSheet.create({
     categoryChipText: {
         ...TYPOGRAPHY.caption,
         color: COLORS.textSecondary,
+    },
+    chipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    chipIcon: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        marginRight: 6,
     },
     categoryChipTextSelected: {
         color: COLORS.primary,

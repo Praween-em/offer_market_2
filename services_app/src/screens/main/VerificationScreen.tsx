@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Linking,
+    Image,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
@@ -19,6 +20,7 @@ import DocumentPicker from 'react-native-document-picker';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import SelfieCameraModal from '../../components/SelfieCameraModal';
 
 const VerificationScreen = ({ navigation }: any) => {
     const { updateUser } = useAuth();
@@ -27,6 +29,30 @@ const VerificationScreen = ({ navigation }: any) => {
     // Form State
     const [zipFile, setZipFile] = useState<any>(null);
     const [shareCode, setShareCode] = useState('');
+    const [selfieUri, setSelfieUri] = useState<string | null>(null);
+    const [showCamera, setShowCamera] = useState(false);
+
+    // Legal Terms State
+    const [legalTerms, setLegalTerms] = useState('');
+    const [loadingTerms, setLoadingTerms] = useState(true);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+    useEffect(() => {
+        const fetchTerms = async () => {
+            try {
+                const response = await api.get('/auth/legal-terms?type=SAHAYAQ_PROVIDER_TERMS');
+                if (response.data && response.data.content) {
+                    setLegalTerms(response.data.content);
+                }
+            } catch (error) {
+                console.error('Failed to fetch legal terms:', error);
+                setLegalTerms('Error loading terms. Please try again later.');
+            } finally {
+                setLoadingTerms(false);
+            }
+        };
+        fetchTerms();
+    }, []);
 
     const handlePickZip = async () => {
         try {
@@ -64,7 +90,11 @@ const VerificationScreen = ({ navigation }: any) => {
             return;
         }
         if (!shareCode || shareCode.length !== 4) {
-            Alert.alert('Invalid Input', 'Please enter the 4-digit Share Code you set when downloading the ZIP.');
+            Alert.alert('Invalid Input', 'Please enter the 4-digit Share Code.');
+            return;
+        }
+        if (!selfieUri) {
+            Alert.alert('Missing Requirement', 'Please take a selfie for verification.');
             return;
         }
 
@@ -83,6 +113,13 @@ const VerificationScreen = ({ navigation }: any) => {
             // Append Share Code
             formData.append('share_code', shareCode);
 
+            // Append Selfie
+            formData.append('selfie', {
+                uri: selfieUri,
+                type: 'image/jpeg',
+                name: 'selfie.jpg',
+            } as any);
+
             const token = await AsyncStorage.getItem('access_token');
             const response = await fetch(`${api.defaults.baseURL}/profile/verify-aadhaar/verify-offline`, {
                 method: 'POST',
@@ -95,6 +132,7 @@ const VerificationScreen = ({ navigation }: any) => {
             });
 
             const responseData = await response.json();
+            console.log('[Verification] Response:', responseData);
 
             if (!response.ok) {
                 throw new Error(responseData.message || 'Verification failed');
@@ -114,7 +152,8 @@ const VerificationScreen = ({ navigation }: any) => {
                                 provider: {
                                     ...responseData.data,
                                     is_verified: true,
-                                    // If backend returns photo, we might want to refresh profile query
+                                    // If backend returns photo (selfie), refresh profile
+                                    profile_picture: selfieUri
                                 }
                             });
                             navigation.goBack();
@@ -155,7 +194,7 @@ const VerificationScreen = ({ navigation }: any) => {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.infoTitle}>Offline XML Verification</Text>
                             <Text style={styles.infoText}>
-                                Secure, paperless verification using your Aadhaar XML ZIP file. No OTP required here.
+                                Secure, paperless verification using your Aadhaar XML ZIP file.
                             </Text>
                         </View>
                     </View>
@@ -210,7 +249,7 @@ const VerificationScreen = ({ navigation }: any) => {
                     {/* Step 2: Share Code */}
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>2. Enter Share Code</Text>
-                        <Text style={styles.subLabel}>The 4-digit code you set when downloading the file.</Text>
+                        <Text style={styles.subLabel}>The 4-digit code you set when downloading.</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. 1234"
@@ -223,13 +262,63 @@ const VerificationScreen = ({ navigation }: any) => {
                         />
                     </View>
 
+                    {/* Step 3: Selfie */}
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>3. Take a Selfie</Text>
+                        <Text style={styles.subLabel}>This will be used as your profile picture.</Text>
+
+                        {!selfieUri ? (
+                            <TouchableOpacity style={styles.uploadBox} onPress={() => setShowCamera(true)}>
+                                <Icon name="camera" size={32} color={COLORS.primary} />
+                                <Text style={styles.uploadText}>Tap to take selfie</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={styles.selfiePreviewContainer}>
+                                <Image source={{ uri: selfieUri }} style={styles.selfiePreview} />
+                                <TouchableOpacity
+                                    style={styles.retakeButton}
+                                    onPress={() => setShowCamera(true)}
+                                >
+                                    <Text style={styles.retakeText}>Retake</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Legal Terms Checkbox */}
+                    <View style={styles.termsContainer}>
+                        <Text style={styles.label}>4. Legal Terms & Liability</Text>
+                        <Text style={styles.subLabel}>Please read and accept the terms below to proceed.</Text>
+
+                        <View style={styles.termsBox}>
+                            {loadingTerms ? (
+                                <ActivityIndicator color={COLORS.primary} style={{ margin: SPACING.xl }} />
+                            ) : (
+                                <Text style={styles.termsText}>{legalTerms}</Text>
+                            )}
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.checkboxRow}
+                            onPress={() => setAcceptedTerms(!acceptedTerms)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.checkbox, acceptedTerms && styles.checkboxSelected]}>
+                                {acceptedTerms && <Icon name="check" size={14} color={COLORS.white} />}
+                            </View>
+                            <Text style={styles.checkboxLabel}>
+                                I have read, understood, and accept the Sahayaq Legal Terms and Liability Disclaimers.
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
                     <TouchableOpacity
                         style={[
                             styles.verifyButton,
-                            (!zipFile || shareCode.length !== 4 || loading) && styles.verifyButtonDisabled
+                            (!zipFile || shareCode.length !== 4 || !selfieUri || loading || !acceptedTerms) && styles.verifyButtonDisabled
                         ]}
                         onPress={handleVerify}
-                        disabled={!zipFile || shareCode.length !== 4 || loading}
+                        disabled={!zipFile || shareCode.length !== 4 || !selfieUri || loading || !acceptedTerms}
                     >
                         {loading ? (
                             <ActivityIndicator color={COLORS.white} />
@@ -243,6 +332,15 @@ const VerificationScreen = ({ navigation }: any) => {
 
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <SelfieCameraModal
+                visible={showCamera}
+                onClose={() => setShowCamera(false)}
+                onCapture={(uri) => {
+                    setSelfieUri(uri);
+                    // setShowCamera(false); // Handled inside component or here
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -390,6 +488,27 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: 'bold',
     },
+    selfiePreviewContainer: {
+        alignItems: 'center',
+        gap: SPACING.md,
+    },
+    selfiePreview: {
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        borderWidth: 4,
+        borderColor: COLORS.success,
+    },
+    retakeButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: COLORS.border,
+        borderRadius: 20,
+    },
+    retakeText: {
+        ...TYPOGRAPHY.caption,
+        fontWeight: '600',
+    },
     verifyButton: {
         backgroundColor: COLORS.primary,
         flexDirection: 'row',
@@ -400,6 +519,7 @@ const styles = StyleSheet.create({
         marginTop: SPACING.sm,
         height: 50,
         ...SHADOWS.medium,
+        marginBottom: SPACING.xxl,
     },
     verifyButtonDisabled: {
         opacity: 0.5,
@@ -408,8 +528,50 @@ const styles = StyleSheet.create({
     verifyButtonText: {
         ...TYPOGRAPHY.button,
         color: COLORS.white,
-        marginLeft: SPACING.sm,
         fontSize: 16,
+    },
+    termsContainer: {
+        marginBottom: SPACING.xl,
+    },
+    termsBox: {
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 8,
+        height: 200,
+        padding: SPACING.md,
+        marginBottom: SPACING.md,
+    },
+    termsText: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textSecondary,
+        lineHeight: 20,
+    },
+    checkboxRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        paddingRight: SPACING.xl,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: COLORS.textSecondary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+    },
+    checkboxSelected: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    checkboxLabel: {
+        ...TYPOGRAPHY.bodySecondary,
+        color: COLORS.text,
+        flex: 1,
+        lineHeight: 20,
     },
 });
 

@@ -284,4 +284,23 @@ export class AuthService {
             user: userData,
         };
     }
+
+    async getLegalTerms(type: string) {
+        console.log(`[AuthService] Fetching legal terms for type: ${type}`);
+        const terms = await this.prisma.consent_notices.findFirst({
+            where: {
+                type: type,
+                is_active: true
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+
+        if (!terms) {
+            throw new BadRequestException(`No active legal terms found for type: ${type}`);
+        }
+
+        return terms;
+    }
 }

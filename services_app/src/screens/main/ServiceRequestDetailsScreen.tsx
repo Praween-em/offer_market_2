@@ -244,7 +244,7 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                     <View style={styles.badgeRow}>
                         {request?.budget && (
                             <View style={styles.budgetBadge}>
-                                <Text style={styles.budgetText}>₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
+                                <Text style={styles.budgetText}>Budget: ₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
                             </View>
                         )}
                         {request?.urgency && (

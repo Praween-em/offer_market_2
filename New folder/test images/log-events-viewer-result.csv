@@ -1,0 +1,82 @@
+timestamp,ingestionTime,message,logStreamName
+1769340265889,1769340270388,> backend@0.0.1 start:prod,instance/0ffdceff89bb446c9d46739d41700615
+1769340265889,1769340270388,> node dist/main || node dist/src/main,instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,node:internal/modules/cjs/loader:1386,instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,  throw err;,instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,  ^,instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,Error: Cannot find module '/app/dist/main',instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at Function._load (node:internal/modules/cjs/loader:1192:37),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at TracingChannel.traceSync (node:diagnostics_channel:328:14),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5),instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,    at node:internal/main/run_main_module:36:49 {,instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,"  code: 'MODULE_NOT_FOUND',",instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,  requireStack: [],instance/0ffdceff89bb446c9d46739d41700615
+1769340265997,1769340270388,},instance/0ffdceff89bb446c9d46739d41700615
+1769340265998,1769340270388,Node.js v22.21.1,instance/0ffdceff89bb446c9d46739d41700615
+1769340267497,1769340270388,Starting application...,instance/0ffdceff89bb446c9d46739d41700615
+1769340267498,1769340270388,Environment Check:,instance/0ffdceff89bb446c9d46739d41700615
+1769340267498,1769340270388,'"- PORT: 3000",instance/0ffdceff89bb446c9d46739d41700615
+1769340267498,1769340270388,'"- DATABASE_URL: Set",instance/0ffdceff89bb446c9d46739d41700615
+1769340267502,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267579,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +77ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267579,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267579,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267579,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267581,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[BunnyService] [39m[32mInitialized BunnyService for Storage Zone: oferaimages-new[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267581,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[BunnyService] [39m[32mUsing Storage Hostname: sg.storage.bunnycdn.com[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267581,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[BunnyService] [39m[32mUsing AccessKey: f7cc...48f5[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267581,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267581,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267582,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMsg91Module dependencies initialized[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267582,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCategoriesModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267583,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMediaModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267584,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mOffersModule dependencies initialized[39m[38;5;3m +2ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267584,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267584,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBunnyModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267584,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267596,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +12ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267599,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +3ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267599,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267600,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/send-otp, POST} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267604,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/verify-otp, POST} route[39m[38;5;3m +4ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267605,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/onboard, POST} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267605,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCategoriesController {/api/categories}:[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267606,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/categories, GET} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267607,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/categories/:id, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267607,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOffersController {/api/offers}:[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267607,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/feed, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267608,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/hot-deals, GET} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267608,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/types, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267609,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers, POST} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267609,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/campaigns, POST} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267610,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/business/:businessId, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267610,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/:id, GET} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267610,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/:id, PATCH} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267610,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/:id/toggle-status, PATCH} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267611,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/owner/dashboard-stats, GET} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267611,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/offers/owner/analytics, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267611,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267611,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/profile, GET} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267612,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/follow/:businessId, POST} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267612,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/follow/:businessId, DELETE} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267612,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/business/:id/report, POST} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267613,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/profile, PATCH} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267613,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/branch-location, PATCH} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267613,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBunnyController {/api/bunny}:[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267613,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bunny/upload, POST} route[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267613,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaController {/api/media}:[39m[38;5;3m +0ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267614,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/media/register, POST} route[39m[38;5;3m +1ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267727,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[CategoriesService] [39m[32mRefreshing Categories Cache...[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267733,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[CategoriesService] [39m[32mLoaded 0 categories into memory.[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267735,1769340270388,"[32m[Nest] 17  - [39m01/25/2026, 11:24:27 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +2ms[39m",instance/0ffdceff89bb446c9d46739d41700615
+1769340267742,1769340270388,🚀 Server running on http://0.0.0.0:3000/api,instance/0ffdceff89bb446c9d46739d41700615
+1769340267742,1769340270388,❤️ Health check available at http://0.0.0.0:3000/,instance/0ffdceff89bb446c9d46739d41700615
+1769340512220,1769340515363,[2026-01-25T11:28:32.220Z] POST /api/ai/generate-description,instance/0ffdceff89bb446c9d46739d41700615
+1769340632530,1769340635259,[2026-01-25T11:30:32.530Z] GET /api/offers/owner/dashboard-stats,instance/0ffdceff89bb446c9d46739d41700615
+1769340638071,1769340640153,[2026-01-25T11:30:38.071Z] GET /api/users/profile,instance/0ffdceff89bb446c9d46739d41700615
+1769340638579,1769340640153,[2026-01-25T11:30:38.578Z] GET /api/offers/business/421c0c4f-00dd-491e-b9e2-4ba89444248f,instance/0ffdceff89bb446c9d46739d41700615
+1769340650050,1769340655375,[2026-01-25T11:30:50.050Z] GET /api/offers/owner/dashboard-stats,instance/0ffdceff89bb446c9d46739d41700615

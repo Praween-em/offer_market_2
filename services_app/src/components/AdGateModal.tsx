@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,12 @@ import {
     Alert,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+    RewardedAd,
+    RewardedAdEventType,
+    TestIds,
+    AdEventType,
+} from 'react-native-google-mobile-ads';
 
 interface AdGateModalProps {
     visible: boolean;
@@ -17,45 +23,127 @@ interface AdGateModalProps {
     leadId: string;
 }
 
-/**
- * Ad-Gate Component for Contact Reveal
- * 2026 DPDP Compliance: Users must view ad before contact reveal
- */
+// WARNING: Using production Ad Unit IDs during development can lead to account suspension.
+// Recommend registering test devices in the AdMob console.
+const REWARDED_AD_UNIT_ID = 'ca-app-pub-5362340568713961/5188075314';
+
 const AdGateModal: React.FC<AdGateModalProps> = ({
     visible,
     onClose,
     onAdComplete,
     leadId,
 }) => {
-    const [adLoading, setAdLoading] = useState(true);
+    const [adInstance, setAdInstance] = useState<RewardedAd | null>(null);
+    const [adLoaded, setAdLoaded] = useState(false);
+    const [isShowing, setIsShowing] = useState(false);
     const [adWatched, setAdWatched] = useState(false);
-    const [countdown, setCountdown] = useState(5);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
-    React.useEffect(() => {
-        if (visible) {
-            // Simulate ad loading
-            setTimeout(() => {
-                setAdLoading(false);
-                startCountdown();
-            }, 1000);
-        } else {
-            // Reset state when modal closes
-            setAdLoading(true);
+    useEffect(() => {
+        if (!visible) {
+            // Cleanup ad instance when modal is hidden
+            setAdInstance(null);
+            setAdLoaded(false);
             setAdWatched(false);
-            setCountdown(5);
+            setLoadError(null);
+            return;
         }
+
+        let isSubscribed = true;
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        // Create a FRESH instance every time the modal opens
+        const newInstance = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
+            requestNonPersonalizedAdsOnly: true,
+        });
+
+        setAdInstance(newInstance);
+
+        const loadAd = (instance: RewardedAd) => {
+            setLoadError(null);
+            setAdLoaded(false);
+            instance.load();
+
+            // 15 second timeout for ad loading
+            timeoutId = setTimeout(() => {
+                if (isSubscribed && !adLoaded) {
+                    setLoadError('Ad load timed out. Please try again.');
+                }
+            }, 15000);
+        };
+
+        const unsubscribeLoaded = newInstance.addAdEventListener(RewardedAdEventType.LOADED, () => {
+            if (isSubscribed) {
+                setAdLoaded(true);
+                setLoadError(null);
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+        });
+
+        const unsubscribeError = newInstance.addAdEventListener(AdEventType.ERROR, (error) => {
+            if (isSubscribed) {
+                console.error('Ad Load Error:', error);
+                setLoadError(`Failed to load ad: ${error.message}`);
+                setAdLoaded(false);
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+        });
+
+        const unsubscribeEarned = newInstance.addAdEventListener(
+            RewardedAdEventType.EARNED_REWARD,
+            reward => {
+                console.log('User earned reward of ', reward);
+                setAdWatched(true);
+            },
+        );
+
+        const unsubscribeClosed = newInstance.addAdEventListener(
+            AdEventType.CLOSED,
+            () => {
+                setIsShowing(false);
+                setAdLoaded(false);
+                // After closing, if they didn't finish, we'd need a new instance to try again
+                // But usually they just click 'Close' on the modal. 
+                // If they remain in modal, we reload.
+                if (!adWatched) {
+                    loadAd(newInstance);
+                }
+            },
+        );
+
+        loadAd(newInstance);
+
+        return () => {
+            isSubscribed = false;
+            unsubscribeLoaded();
+            unsubscribeError();
+            unsubscribeEarned();
+            unsubscribeClosed();
+            if (timeoutId) clearTimeout(timeoutId);
+        };
     }, [visible]);
 
-    const startCountdown = () => {
-        let count = 5;
-        const interval = setInterval(() => {
-            count--;
-            setCountdown(count);
-            if (count === 0) {
-                clearInterval(interval);
-                setAdWatched(true);
+    const handleShowAd = () => {
+        if (adLoaded && adInstance) {
+            setIsShowing(true);
+            adInstance.show();
+        } else if (loadError) {
+            if (adInstance) {
+                setLoadError(null);
+                setAdLoaded(false);
+                adInstance.load();
             }
-        }, 1000);
+        } else {
+            Alert.alert('Ad Not Ready', 'Please wait while we prepare the advertisement.');
+        }
+    };
+
+    const handleRetry = () => {
+        if (adInstance) {
+            setLoadError(null);
+            setAdLoaded(false);
+            adInstance.load();
+        }
     };
 
     const handleContinue = () => {
@@ -75,16 +163,18 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
                 <View style={styles.container}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <MaterialCommunityIcons name="shield-check" size={24} color="#FF4757" />
-                        <Text style={styles.headerTitle}>Data Protection Notice</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                            <MaterialCommunityIcons name="close" size={24} color="#636E72" />
-                        </TouchableOpacity>
+                        <MaterialCommunityIcons name="handshake-outline" size={24} color="#4F46E5" />
+                        <Text style={styles.headerTitle}>Unlock Contact Details</Text>
+                        {!isShowing && (
+                            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                                <MaterialCommunityIcons name="close" size={24} color="#636E72" />
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Compliance Notice */}
                     <View style={styles.noticeBox}>
-                        <Text style={styles.noticeTitle}>📋 DPDP Act Compliance</Text>
+                        <Text style={styles.noticeTitle}>🤝 Privacy First</Text>
                         <Text style={styles.noticeText}>
                             Contact information will be shared after viewing this advertisement. This is done with explicit consent under Section 6 of the Digital Personal Data Protection Act, 2023.
                         </Text>
@@ -95,32 +185,57 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
 
                     {/* Ad Container */}
                     <View style={styles.adContainer}>
-                        {adLoading ? (
+                        {loadError ? (
+                            <View style={styles.adContent}>
+                                <MaterialCommunityIcons name="alert-circle" size={80} color="#FF9800" />
+                                <Text style={styles.adTitle}>Load Failed</Text>
+                                <Text style={[styles.adSubtitle, { color: '#E67E22' }]}>{loadError}</Text>
+                            </View>
+                        ) : !adLoaded && !adWatched ? (
                             <View style={styles.adLoading}>
                                 <ActivityIndicator size="large" color="#FF4757" />
                                 <Text style={styles.adLoadingText}>Loading advertisement...</Text>
                             </View>
                         ) : (
                             <View style={styles.adContent}>
-                                <MaterialCommunityIcons name="play-circle" size={80} color="#FF4757" />
-                                <Text style={styles.adTitle}>Advertisement</Text>
+                                <MaterialCommunityIcons
+                                    name={adWatched ? "check-circle" : "play-circle"}
+                                    size={80}
+                                    color={adWatched ? "#10B981" : "#4F46E5"}
+                                />
+                                <Text style={styles.adTitle}>
+                                    {adWatched ? 'Ad Completed' : 'Advertisement Ready'}
+                                </Text>
                                 <Text style={styles.adSubtitle}>
-                                    {adWatched ? 'Ad completed!' : `Please wait ${countdown} seconds...`}
+                                    {adWatched ? 'You can now view the contact.' : 'Click below to watch and unlock.'}
                                 </Text>
                             </View>
                         )}
                     </View>
 
                     {/* Action Button */}
-                    <TouchableOpacity
-                        style={[styles.continueBtn, !adWatched && styles.continueBtnDisabled]}
-                        onPress={handleContinue}
-                        disabled={!adWatched}
-                    >
-                        <Text style={styles.continueBtnText}>
-                            {adWatched ? 'Continue to Contact' : `Wait ${countdown}s`}
-                        </Text>
-                    </TouchableOpacity>
+                    {!adWatched ? (
+                        <TouchableOpacity
+                            style={[
+                                styles.continueBtn,
+                                (!adLoaded && !loadError) && styles.continueBtnDisabled,
+                                loadError && { backgroundColor: '#FFBDC3' }
+                            ]}
+                            onPress={handleShowAd}
+                            disabled={(!adLoaded && !loadError) || isShowing}
+                        >
+                            <Text style={styles.continueBtnText}>
+                                {adLoaded ? 'Watch Ad to Unlock' : loadError ? 'Retry Loading Ad' : 'Preparing Ad...'}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.continueBtn}
+                            onPress={handleContinue}
+                        >
+                            <Text style={styles.continueBtnText}>Continue to Contact</Text>
+                        </TouchableOpacity>
+                    )}
 
                     {/* Footer Notice */}
                     <Text style={styles.footerText}>
@@ -162,9 +277,9 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     noticeBox: {
-        backgroundColor: '#FFF9E6',
+        backgroundColor: '#EEF2FF',
         borderLeftWidth: 4,
-        borderLeftColor: '#FF9800',
+        borderLeftColor: '#4F46E5',
         padding: 16,
         borderRadius: 12,
         marginBottom: 20,
@@ -172,7 +287,7 @@ const styles = StyleSheet.create({
     noticeTitle: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#2D3436',
+        color: '#4F46E5',
         marginBottom: 8,
     },
     noticeText: {
@@ -214,9 +329,11 @@ const styles = StyleSheet.create({
     adSubtitle: {
         fontSize: 14,
         color: '#636E72',
+        textAlign: 'center',
+        paddingHorizontal: 20,
     },
     continueBtn: {
-        backgroundColor: '#FF4757',
+        backgroundColor: '#4F46E5',
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',

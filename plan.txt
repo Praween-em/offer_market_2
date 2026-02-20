@@ -1,0 +1,31 @@
+# EarnKaro Callback Testing Plan
+
+To see exactly what data EarnKaro sends and ensure our "Bridge" works, follow these steps:
+
+### STEP 1: Get a Live Test URL
+1. Go to [Webhook.site](https://webhook.site).
+2. Copy your "Unique URL" (e.g., `https://webhook.site/#!/abcd-1234...`).
+3. This URL will act as your "Fake Ofera Backend" to catch the data.
+
+### STEP 2: Configure EarnKaro
+1. Log in to your EarnKaro Affiliate Dashboard.
+2. Go to **Account Settings** -> **Postback/Webhook Settings**.
+3. Paste your Webhook.site URL into the "Postback URL" field.
+4. Choose the "HTTP GET" or "HTTP POST" method (Ofera will support both).
+
+### STEP 3: Trigger a "Test Conversion"
+1. Generate an EarnKaro Profit Link for any product.
+2. Manually append a test User ID to the link: `...&s1=TEST_USER_999`.
+3. Open the link in Incognito and (if possible) perform a small test purchase or use EarnKaro's "Test Postback" button if they have one.
+
+### STEP 4: Inspect the Data on Webhook.site
+Look for the following fields in the incoming request:
+- `s1` or `subid1`: This should be `TEST_USER_999`.
+- `amount` or `sale_amount`: The value of the purchase.
+- `profit` or `payout`: The money EarnKaro made (30% of this goes to the user).
+- `status`: Should be "pending" or 0.
+
+### STEP 5: Replicate to Ofera Backend
+1. Once you see the data format, use Postman or `curl` to send the same data to:
+   `http://localhost:3000/affiliate/callback?s1=TEST_USER_999&amount=1000&profit=80`
+2. Check your Ofera database to confirm the `cashback_transactions` table now has a entry for `TEST_USER_999`.

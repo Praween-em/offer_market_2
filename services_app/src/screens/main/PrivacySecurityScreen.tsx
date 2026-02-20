@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -8,11 +8,46 @@ import {
     StatusBar,
     Linking,
     SafeAreaView,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const PrivacySecurityScreen = ({ navigation }: any) => {
+    const { logout } = useAuth();
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "Request Account Deletion",
+            "Are you absolutely sure? Submitting this request will initiate the permanent deletion of your data profile and leads history. For security and compliance reasons, this process may take up to 45 working days.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Submit Deletion Request",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setIsDeleting(true);
+                            await api.delete('/users/account');
+                            Alert.alert('Request Submitted', 'Your account deletion request has been submitted and will be processed within 45 working days.', [
+                                { text: 'OK' }
+                            ]);
+                            setIsDeleting(false);
+                        } catch (error) {
+                            console.error('Failed to request account deletion:', error);
+                            setIsDeleting(false);
+                            Alert.alert('Error', 'Failed to submit deletion request. Please try again or contact support.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const Section = ({ title, content, icon }: { title: string; content: string; icon: string }) => (
         <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -85,6 +120,25 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                     title="Data & Consent Retention"
                     content="We retain your professional history and active consent records as long as your account exists. Consent for specific lead reveals is archived for 1 year to satisfy regulatory audit requirements."
                 />
+
+                <TouchableOpacity
+                    style={styles.deleteAccountBtn}
+                    onPress={handleDeleteAccount}
+                    disabled={isDeleting}
+                >
+                    {isDeleting ? (
+                        <ActivityIndicator color={COLORS.error} />
+                    ) : (
+                        <>
+                            <MaterialCommunityIcons name="delete-forever" size={20} color={COLORS.error} />
+                            <Text style={styles.deleteAccountText}>Delete My Account</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                <Text style={styles.deletionDisclaimer}>
+                    We will take up to 45 working days to delete your data from our database for security reasons.
+                </Text>
 
                 <TouchableOpacity
                     style={styles.fullPolicyBtn}
@@ -180,6 +234,34 @@ const styles = StyleSheet.create({
         ...TYPOGRAPHY.body,
         fontWeight: '700',
         color: COLORS.primary,
+    },
+    deleteAccountBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: SPACING.xl,
+        paddingVertical: 14,
+        paddingHorizontal: SPACING.lg,
+        borderWidth: 1,
+        borderColor: COLORS.error,
+        borderRadius: 12,
+        backgroundColor: '#FEF2F2',
+        gap: 8,
+        ...SHADOWS.small,
+        marginBottom: SPACING.md,
+    },
+    deleteAccountText: {
+        ...TYPOGRAPHY.body,
+        fontWeight: '700',
+        color: COLORS.error,
+    },
+    deletionDisclaimer: {
+        ...TYPOGRAPHY.caption,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        paddingHorizontal: SPACING.lg,
+        marginBottom: SPACING.md,
+        fontStyle: 'italic',
     },
     footerNote: {
         textAlign: 'center',

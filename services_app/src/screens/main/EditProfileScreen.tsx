@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { LocationService } from '../../services/LocationService';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { Platform } from 'react-native';
+import SelfieCameraModal from '../../components/SelfieCameraModal';
 
 const EditProfileScreen = ({ navigation }: any) => {
     const { user, refreshUser } = useAuth();
@@ -26,19 +27,21 @@ const EditProfileScreen = ({ navigation }: any) => {
         longitude: user?.provider?.longitude || null,
     });
     const [detecting, setDetecting] = useState(false);
-    const [profilePicture, setProfilePicture] = useState(verifiedPhoto || user?.provider?.profile_picture || '');
+    const [profilePicture, setProfilePicture] = useState(user?.provider?.profile_picture || '');
     const [isUploading, setIsUploading] = useState(false);
+    const [showCamera, setShowCamera] = useState(false);
 
-    const pickImage = async () => {
-        const result = await launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.7,
-        });
+    const handlePhotoAction = () => {
+        setShowCamera(true);
+    };
 
-        if (result.assets && result.assets.length > 0) {
-            const asset = result.assets[0];
-            uploadImage(asset);
-        }
+    const handleSelfieCapture = (uri: string) => {
+        const asset = {
+            uri: uri,
+            type: 'image/jpeg',
+            fileName: 'selfie.jpg',
+        };
+        uploadImage(asset);
     };
 
     const uploadImage = async (asset: any) => {
@@ -57,7 +60,9 @@ const EditProfileScreen = ({ navigation }: any) => {
                 },
             });
 
+            console.log('[EditProfile] Upload success:', response.data.url);
             setProfilePicture(response.data.url);
+            Alert.alert('Success', 'Profile picture uploaded successfully!');
         } catch (error) {
             console.error('Upload failed', error);
             Alert.alert('Error', 'Could not upload photo.');
@@ -141,16 +146,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, isVerified && { borderColor: COLORS.success, borderWidth: 3 }]}>
-                            {isVerified && user?.user_verification?.photo_base64 ? (
-                                <Image
-                                    source={{
-                                        uri: user.user_verification.photo_base64.startsWith('data:')
-                                            ? user.user_verification.photo_base64
-                                            : `data:image/jpeg;base64,${user.user_verification.photo_base64}`
-                                    }}
-                                    style={styles.avatarImage}
-                                />
-                            ) : profilePicture ? (
+                            {profilePicture ? (
                                 <Image
                                     source={{ uri: profilePicture }}
                                     style={styles.avatarImage}
@@ -164,20 +160,13 @@ const EditProfileScreen = ({ navigation }: any) => {
                                 <ActivityIndicator color={COLORS.white} />
                             </View>
                         )}
-                        {!isVerified && (
-                            <TouchableOpacity
-                                style={styles.cameraBadge}
-                                onPress={pickImage}
-                                disabled={isUploading}
-                            >
-                                <Icon name="camera" size={16} color={COLORS.white} />
-                            </TouchableOpacity>
-                        )}
-                        {isVerified && (
-                            <View style={[styles.cameraBadge, { backgroundColor: COLORS.success }]}>
-                                <Icon name="lock" size={14} color={COLORS.white} />
-                            </View>
-                        )}
+                        <TouchableOpacity
+                            style={styles.cameraBadge}
+                            onPress={handlePhotoAction}
+                            disabled={isUploading}
+                        >
+                            <Icon name="camera" size={16} color={COLORS.white} />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -186,8 +175,8 @@ const EditProfileScreen = ({ navigation }: any) => {
                         <Text style={styles.label}>Full Name</Text>
                         {isVerified && (
                             <View style={styles.verifiedBadge}>
-                                <Icon name="shield" size={12} color={COLORS.success} />
-                                <Text style={styles.verifiedText}>Aadhaar Verified</Text>
+                                <MaterialCommunityIcons name="check-decagram" size={14} color="#0EA5E9" />
+                                <Text style={styles.verifiedText}>ID Verified</Text>
                             </View>
                         )}
                     </View>
@@ -272,6 +261,12 @@ const EditProfileScreen = ({ navigation }: any) => {
                     )}
                 </TouchableOpacity>
             </ScrollView>
+
+            <SelfieCameraModal
+                visible={showCamera}
+                onClose={() => setShowCamera(false)}
+                onCapture={handleSelfieCapture}
+            />
         </SafeAreaView>
     );
 };
@@ -408,17 +403,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: `${COLORS.success}10`,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        borderWidth: 0.5,
-        borderColor: COLORS.success,
+        backgroundColor: '#F0F9FF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#BAE6FD',
     },
     verifiedText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: COLORS.success,
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#0284C7',
     },
     helperText: {
         fontSize: 11,

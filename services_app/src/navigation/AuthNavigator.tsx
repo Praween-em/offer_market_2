@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
+import TermsConditionsScreen from '../screens/legal/TermsConditionsScreen';
+import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicyScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Stack = createNativeStackNavigator();
@@ -18,6 +20,8 @@ const AuthNavigator = () => {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         </Stack.Navigator>
     );
 };

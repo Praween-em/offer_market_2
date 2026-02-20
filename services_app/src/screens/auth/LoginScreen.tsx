@@ -1,30 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Dimensions,
+    ScrollView,
+    Image,
+    Animated,
 } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme/theme';
-import api from '../../services/api';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { Alert } from 'react-native';
-
 import ConsentModal from '../../components/ConsentModal';
+
+const { height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }: any) => {
     const { requestOtp } = useAuth();
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [showConsent, setShowConsent] = useState(false);
+    const cardSlideAnim = useRef(new Animated.Value(0)).current;
+
+    const handleFocus = () => {
+        Animated.spring(cardSlideAnim, {
+            toValue: -60,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+        }).start();
+    };
+
+    const handleBlur = () => {
+        Animated.spring(cardSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+        }).start();
+    };
 
     const handleSendOtp = async () => {
-        if (phone.length < 10) return;
+        if (phone.length < 10) {
+            Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+            return;
+        }
         setShowConsent(true);
     };
 
@@ -43,139 +69,267 @@ const LoginScreen = ({ navigation }: any) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.inner}
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+                scrollEnabled={false}
             >
-                <View style={styles.content}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Sahayaq</Text>
-                        <View style={styles.orangeDot} />
-                    </View>
-                    <Text style={styles.subtitle}>where needs meet services.</Text>
-                    <Text style={styles.subtitle}>
-                        Enter your phone number to get started and manage your service profile.
-                    </Text>
+                <View style={styles.container}>
+                    {/* Background Characters */}
+                    <Image
+                        source={require('../../assets/New folder/Sayayaq6.png')}
+                        style={[styles.bgChar, styles.charTopLeft]}
+                        resizeMode="contain"
+                    />
+                    <Image
+                        source={require('../../assets/New folder/Sayayaq2-removebg-preview.png')}
+                        style={[styles.bgChar, styles.charTopRight]}
+                        resizeMode="contain"
+                    />
+                    <Image
+                        source={require('../../assets/New folder/Sayayaq5.png')}
+                        style={[styles.bgChar, styles.charBottomLeft]}
+                        resizeMode="contain"
+                    />
+                    <Image
+                        source={require('../../assets/New folder/Sayayaq8.png')}
+                        style={[styles.bgChar, styles.charBottomCenter]}
+                        resizeMode="contain"
+                    />
+                    <Image
+                        source={require('../../assets/New folder/Sayayaq7.png')}
+                        style={[styles.bgChar, styles.charBottomRight]}
+                        resizeMode="contain"
+                    />
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.prefix}>+91</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Phone Number"
-                            keyboardType="phone-pad"
-                            value={phone}
-                            onChangeText={setPhone}
-                            maxLength={10}
-                        />
-                    </View>
+                    {/* Login Card */}
+                    <Animated.View style={[styles.cardContainer, { transform: [{ translateY: cardSlideAnim }] }]}>
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>sahayaq</Text>
+                            <Text style={styles.cardSubtitle}>secured • verified • local</Text>
 
-                    <TouchableOpacity
-                        style={[styles.button, (loading || phone.length < 10) && styles.buttonDisabled]}
-                        onPress={handleSendOtp}
-                        disabled={loading || phone.length < 10}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color={COLORS.white} />
-                        ) : (
-                            <Text style={TYPOGRAPHY.button}>Send OTP</Text>
-                        )}
-                    </TouchableOpacity>
+                            <Text style={styles.label}>Phone Number</Text>
+                            <View style={styles.inputWrapper}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter your phone number"
+                                    keyboardType="phone-pad"
+                                    value={phone}
+                                    onChangeText={setPhone}
+                                    maxLength={10}
+                                    placeholderTextColor="#BBB"
+                                    onFocus={handleFocus}
+                                    onBlur={handleBlur}
+                                />
+                            </View>
 
-                    <Text style={styles.termsText}>
-                        By continuing, you agree to our terms and conditions as per DPDP 2026 Act.
-                    </Text>
+                            <TouchableOpacity
+                                style={[styles.button, (loading || phone.length < 10) && styles.buttonDisabled]}
+                                onPress={handleSendOtp}
+                                disabled={loading || phone.length < 10}
+                                activeOpacity={0.8}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.buttonText}>Send OTP</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <Text style={styles.termsText}>
+                                By continuing, you agree to our{' '}
+                                <Text
+                                    style={styles.termsLink}
+                                    onPress={() => navigation.navigate('TermsConditions' as any)}
+                                >
+                                    Terms of Service
+                                </Text> and{' '}
+                                <Text
+                                    style={styles.termsLink}
+                                    onPress={() => navigation.navigate('PrivacyPolicy' as any)}
+                                >
+                                    Privacy Policy
+                                </Text>
+                            </Text>
+                        </View>
+                    </Animated.View>
+
+                    <ConsentModal
+                        visible={showConsent}
+                        type="ONBOARDING"
+                        onAccept={proceedWithOtp}
+                        onCancel={() => setShowConsent(false)}
+                    />
                 </View>
-
-                <ConsentModal
-                    visible={showConsent}
-                    type="ONBOARDING"
-                    onAccept={proceedWithOtp}
-                    onCancel={() => setShowConsent(false)}
-                />
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
-    },
-    inner: {
-        flex: 1,
+        backgroundColor: '#283593', // Deep indigo blue
         justifyContent: 'center',
-        padding: SPACING.lg,
     },
-    content: {
+    bgChar: {
+        position: 'absolute',
+        width: 120,
+        height: 120,
+    },
+    charTopLeft: {
+        top: '10%',
+        left: '5%',
+    },
+    charTopRight: {
+        top: '10%',
+        right: '5%',
+    },
+    charBottomLeft: {
+        bottom: '8%',
+        left: '5%',
+    },
+    charBottomRight: {
+        bottom: '8%',
+        right: '5%',
+    },
+    charBottomCenter: {
+        bottom: '2%',
+        alignSelf: 'center',
+        width: 150,
+        height: 150,
+    },
+    headerContent: {
         alignItems: 'center',
+        marginBottom: 40,
     },
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        position: 'relative',
-    },
-    title: {
-        ...TYPOGRAPHY.h1,
-        fontSize: 55,
-        color: '#4F46E5',
-        marginBottom: SPACING.xs,
+    brandTitle: {
+        fontSize: 48,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
         letterSpacing: 1,
     },
-    orangeDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#FF6B35',
-        position: 'absolute',
-        bottom: 8,
-        right: -16,
+    cardContainer: {
+        paddingHorizontal: 28,
+        zIndex: 10,
     },
-    subtitle: {
-        ...TYPOGRAPHY.bodySecondary,
-        textAlign: 'center',
-        marginBottom: SPACING.xl,
-        paddingHorizontal: SPACING.lg,
-    },
-    inputContainer: {
-        flexDirection: 'row',
+    card: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 24,
+        padding: 32,
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
         borderWidth: 1,
-        borderColor: COLORS.border,
-        borderRadius: 12,
-        paddingHorizontal: SPACING.md,
-        marginBottom: SPACING.lg,
-        width: '100%',
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.2,
+                shadowRadius: 15,
+            },
+            android: {
+                elevation: 12,
+            },
+        }),
     },
-    prefix: {
-        ...TYPOGRAPHY.body,
-        fontWeight: '600',
-        marginRight: SPACING.sm,
+    cardTitle: {
+        fontSize: 36,
+        fontWeight: '900',
+        color: '#1A237E', // Slightly darker theme color
+        marginBottom: 6,
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#3F51B5',
+        fontWeight: '800',
+        marginBottom: 32,
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#666',
+        marginBottom: 8,
+        alignSelf: 'flex-start',
+    },
+    inputWrapper: {
+        backgroundColor: '#FFF',
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#E8EAF6',
+        marginBottom: 24,
+        height: 56,
+        justifyContent: 'center',
+        width: '100%',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 2,
+            },
+        }),
     },
     input: {
-        flex: 1,
-        height: 56,
-        ...TYPOGRAPHY.body,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        color: '#333',
     },
     button: {
-        backgroundColor: COLORS.primary,
-        width: '100%',
-        height: 56,
+        backgroundColor: '#3F51B5',
         borderRadius: 12,
+        height: 56,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: 28,
+        width: '100%',
+        ...SHADOWS.medium,
     },
     buttonDisabled: {
-        opacity: 0.5,
+        opacity: 0.7,
+    },
+    buttonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFF',
+    },
+    forgotContainer: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    forgotText: {
+        color: '#3f51b5',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    signupText: {
+        textAlign: 'center',
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 24,
+    },
+    signupLink: {
+        color: '#3f51b5',
+        fontWeight: 'bold',
     },
     termsText: {
-        ...TYPOGRAPHY.caption,
+        fontSize: 11,
+        color: '#999',
         textAlign: 'center',
-        marginTop: SPACING.xl,
-        color: COLORS.textSecondary,
+        lineHeight: 16,
+    },
+    termsLink: {
+        color: '#3f51b5',
+        textDecorationLine: 'underline',
     },
 });
 

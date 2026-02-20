@@ -83,10 +83,18 @@ const ConsentModal = ({ visible, type, userId, onAccept, onCancel }: ConsentModa
                 <View style={styles.content}>
                     <View style={styles.header}>
                         <View style={styles.iconContainer}>
-                            <MaterialCommunityIcons name="shield-check-outline" size={32} color={COLORS.primary} />
+                            <MaterialCommunityIcons
+                                name={type === 'ONBOARDING' ? 'handshake-outline' : 'information-outline'}
+                                size={32}
+                                color={COLORS.primary}
+                            />
                         </View>
-                        <Text style={styles.title}>Legal Consent Required</Text>
-                        <Text style={styles.subtitle}>DPDP Compliance 2026</Text>
+                        <Text style={styles.title}>
+                            {type === 'ONBOARDING' ? 'Welcome to Sahayaq' : 'Connect with User'}
+                        </Text>
+                        <Text style={styles.subtitle}>
+                            {type === 'ONBOARDING' ? 'A quick privacy update before you start.' : 'Please review this quick privacy update.'}
+                        </Text>
                     </View>
 
                     <View style={styles.noticeContainer}>
@@ -108,7 +116,7 @@ const ConsentModal = ({ visible, type, userId, onAccept, onCancel }: ConsentModa
                             onPress={onCancel}
                             disabled={accepting}
                         >
-                            <Text style={styles.cancelBtnText}>Decline</Text>
+                            <Text style={styles.cancelBtnText}>Maybe Later</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.acceptBtn, accepting && styles.disabledBtn]}
@@ -118,7 +126,7 @@ const ConsentModal = ({ visible, type, userId, onAccept, onCancel }: ConsentModa
                             {accepting ? (
                                 <ActivityIndicator color="#FFF" size="small" />
                             ) : (
-                                <Text style={styles.acceptBtnText}>I Agree</Text>
+                                <Text style={styles.acceptBtnText}>Accept & Continue</Text>
                             )}
                         </TouchableOpacity>
                     </View>

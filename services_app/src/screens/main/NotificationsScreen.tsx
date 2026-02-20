@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import NotificationService from '../../services/NotificationService';
 import { useFocusEffect } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
+import { useNotifications } from '../../context/NotificationContext';
 
 interface NotificationItem {
     id: string;
@@ -20,6 +21,7 @@ const NotificationsScreen = ({ navigation }: any) => {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const { refreshUnreadCount } = useNotifications();
 
     const fetchNotifications = async () => {
         try {
@@ -44,9 +46,17 @@ const NotificationsScreen = ({ navigation }: any) => {
         fetchNotifications();
     }, []);
 
-    const markAsRead = async (id: string) => {
+    const markAsRead = async (id: string, type?: string, data?: any) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         await NotificationService.markAsRead(id);
+        refreshUnreadCount();
+
+        if (type === 'NEW_REQUEST') {
+            const requestId = data?.requestId || (typeof data === 'string' ? JSON.parse(data).requestId : null);
+            if (requestId) {
+                navigation.navigate('ServiceRequestDetails', { requestId });
+            }
+        }
     };
 
     const markAllAsRead = async () => {
@@ -55,6 +65,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         await Promise.all(unreadIds.map(id => NotificationService.markAsRead(id)));
+        refreshUnreadCount();
     };
 
     const getIcon = (type: string = 'system') => {
@@ -97,7 +108,7 @@ const NotificationsScreen = ({ navigation }: any) => {
         return (
             <TouchableOpacity
                 style={[styles.notificationItem, !item.is_read && styles.unreadItem]}
-                onPress={() => !item.is_read && markAsRead(item.id)}
+                onPress={() => markAsRead(item.id, type, item.data)}
                 activeOpacity={0.7}
             >
                 <View style={[styles.iconContainer, !item.is_read && styles.unreadIconContainer]}>

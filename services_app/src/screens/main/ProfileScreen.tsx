@@ -2,11 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import { Alert } from 'react-native';
+import { useNotifications } from '../../context/NotificationContext';
 
 const ProfileScreen = ({ navigation }: any) => {
     const { user, logout } = useAuth();
+    const { unreadCount } = useNotifications();
 
     const handleLogout = () => {
         Alert.alert(
@@ -24,35 +27,50 @@ const ProfileScreen = ({ navigation }: any) => {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                {user?.verification_status !== 'VERIFIED' && (
+                    <TouchableOpacity
+                        style={styles.urgentVerifyBanner}
+                        onPress={() => navigation.navigate('Verification')}
+                    >
+                        <View style={styles.urgentVerifyHeader}>
+                            <Icon name="alert-triangle" size={24} color={COLORS.white} />
+                            <Text style={styles.urgentVerifyTitle}>ACTION REQUIRED</Text>
+                        </View>
+                        <Text style={styles.urgentVerifyDesc}>
+                            Your account is unverified! You must verify your identity immediately to keep your account active and continue receiving orders.
+                        </Text>
+                        <View style={styles.urgentVerifyBtn}>
+                            <Text style={styles.urgentVerifyBtnText}>Verify Identity Now</Text>
+                            <Icon name="chevron-right" size={16} color={COLORS.error} />
+                        </View>
+                    </TouchableOpacity>
+                )}
+
                 <View style={[styles.header, isVerified ? styles.verifiedHeader : styles.unverifiedHeader]}>
                     <View style={styles.profileInfo}>
                         <View style={styles.avatarContainer}>
-                            <View style={[styles.avatar, { borderColor: isVerified ? COLORS.secondary : COLORS.error }]}>
-                                {isVerified && user?.user_verification?.photo_base64 ? (
-                                    <Image
-                                        source={{
-                                            uri: user.user_verification.photo_base64.startsWith('data:')
-                                                ? user.user_verification.photo_base64
-                                                : `data:image/jpeg;base64,${user.user_verification.photo_base64}`
-                                        }}
-                                        style={styles.avatarImage}
-                                    />
-                                ) : user?.provider?.profile_picture ? (
+                            <View style={[styles.avatar, { borderColor: isVerified ? '#0EA5E9' : COLORS.error }]}>
+                                {user?.provider?.profile_picture ? (
                                     <Image
                                         source={{ uri: user.provider.profile_picture }}
                                         style={styles.avatarImage}
                                     />
                                 ) : (
-                                    <Icon name="user" size={32} color={isVerified ? COLORS.secondary : COLORS.error} />
+                                    <Icon name="user" size={32} color={isVerified ? '#0EA5E9' : COLORS.error} />
                                 )}
                             </View>
-                            <TouchableOpacity
-                                style={[styles.cameraBadge, { backgroundColor: isVerified ? COLORS.secondary : COLORS.error }]}
-                                onPress={() => navigation.navigate('EditProfile')}
-                                disabled={isVerified}
-                            >
-                                <Icon name={isVerified ? "check" : "camera"} size={12} color={COLORS.white} />
-                            </TouchableOpacity>
+                            {isVerified ? (
+                                <View style={[styles.cameraBadge, { backgroundColor: COLORS.white, borderWidth: 0 }]}>
+                                    <MaterialCommunityIcons name="check-decagram" size={28} color="#0EA5E9" />
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.cameraBadge, { backgroundColor: COLORS.error }]}
+                                    onPress={() => navigation.navigate('EditProfile')}
+                                >
+                                    <Icon name="camera" size={14} color={COLORS.white} />
+                                </TouchableOpacity>
+                            )}
                         </View>
                         <TouchableOpacity
                             style={styles.nameContainer}
@@ -62,12 +80,6 @@ const ProfileScreen = ({ navigation }: any) => {
                                 <Text style={TYPOGRAPHY.h2} numberOfLines={1}>
                                     {(isVerified && user?.user_verification?.full_name_xml) ? user.user_verification.full_name_xml : (user?.display_name || 'Service Provider')}
                                 </Text>
-                                {isVerified && (
-                                    <View style={styles.verifiedBadge}>
-                                        <Icon name="check-circle" size={12} color={COLORS.secondary} />
-                                        <Text style={styles.verifiedText}>Verified</Text>
-                                    </View>
-                                )}
                             </View>
                             <View style={styles.categoryRow}>
                                 <View style={styles.categoryBadge}>
@@ -84,23 +96,16 @@ const ProfileScreen = ({ navigation }: any) => {
                     </View>
                 </View>
 
+                <TouchableOpacity
+                    style={styles.editProfileButton}
+                    onPress={() => navigation.navigate('EditProfile')}
+                >
+                    <Icon name="edit-2" size={18} color={COLORS.primary} />
+                    <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Account Settings</Text>
-                    {user?.verification_status !== 'VERIFIED' && (
-                        <TouchableOpacity
-                            style={styles.menuItem}
-                            onPress={() => navigation.navigate('Verification')}
-                        >
-                            <View style={[styles.menuIcon, { backgroundColor: '#FEE2E2' }]}>
-                                <Icon name="shield" size={20} color="#DC2626" />
-                            </View>
-                            <View style={styles.menuTextContainer}>
-                                <Text style={styles.menuText}>Verify Identity</Text>
-                                <Text style={styles.menuSubtext}>Complete verification to unlock features</Text>
-                            </View>
-                            <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
-                        </TouchableOpacity>
-                    )}
                     <TouchableOpacity
                         style={styles.menuItem}
                         onPress={() => navigation.navigate('PrivacySecurity')}
@@ -112,6 +117,21 @@ const ProfileScreen = ({ navigation }: any) => {
                             <Text style={styles.menuText}>Privacy & Security</Text>
                             <Text style={styles.menuSubtext}>DPDP Act & Data Protection</Text>
                         </View>
+                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('Notifications')}
+                    >
+                        <View style={[styles.menuIcon, { backgroundColor: '#F5F3FF' }]}>
+                            <Icon name="bell" size={20} color="#7C3AED" />
+                        </View>
+                        <View style={styles.menuTextContainer}>
+                            <Text style={styles.menuText}>Notifications</Text>
+                            <Text style={styles.menuSubtext}>Manage app alerts & signals</Text>
+                        </View>
+                        {unreadCount > 0 && <View style={styles.badge} />}
                         <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                 </View>
@@ -203,6 +223,50 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         ...SHADOWS.small,
     },
+    urgentVerifyBanner: {
+        backgroundColor: COLORS.error,
+        borderRadius: 16,
+        padding: SPACING.md,
+        marginBottom: SPACING.lg,
+        borderWidth: 2,
+        borderColor: '#991B1B', // Darker red border
+        ...SHADOWS.medium,
+        elevation: 8,
+    },
+    urgentVerifyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: SPACING.sm,
+        gap: SPACING.sm,
+    },
+    urgentVerifyTitle: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.white,
+        fontWeight: '900',
+        letterSpacing: 1,
+    },
+    urgentVerifyDesc: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.white,
+        fontWeight: '600',
+        marginBottom: SPACING.md,
+        lineHeight: 20,
+    },
+    urgentVerifyBtn: {
+        backgroundColor: COLORS.white,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 8,
+        gap: 8,
+    },
+    urgentVerifyBtnText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.error,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+    },
     verifiedHeader: {
         backgroundColor: '#ECFDF5',
         borderColor: '#10B981',
@@ -212,6 +276,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEF2F2',
         borderColor: COLORS.error,
         borderWidth: 1.5,
+    },
+    editProfileButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: `${COLORS.primary}15`,
+        paddingVertical: 12,
+        borderRadius: 12,
+        marginBottom: SPACING.xl,
+        gap: 8,
+    },
+    editProfileButtonText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.primary,
+        fontWeight: '700',
     },
     profileInfo: {
         flexDirection: 'row',
@@ -265,19 +344,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: SPACING.sm,
     },
-    verifiedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#ECFDF5',
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-    },
-    verifiedText: {
-        ...TYPOGRAPHY.caption,
-        color: COLORS.secondary,
-        fontWeight: '600',
+    badge: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: COLORS.error,
+        marginRight: SPACING.xs,
     },
     categoryRow: {
         marginBottom: 4,

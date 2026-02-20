@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -43,20 +43,28 @@ const FEATURED_CATEGORIES = [
 
 
 import { useNotifications } from '../context/NotificationContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 const HomeScreen = ({ navigation }: any) => {
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const { language, setLanguage, t, translateData } = useLanguage();
-    const { location, detectLocation } = useLocation();
-    const { unreadCount } = useNotifications();
-    console.log('[HomeScreen] unreadCount from context:', unreadCount);
+    const { location, detectLocation, checkLocationPermissionOnLoad } = useLocation();
+    const { unreadCount, refreshUnreadCount } = useNotifications();
+
+    // Refresh unread count every time the screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            refreshUnreadCount();
+        }, [refreshUnreadCount])
+    );
     const [serviceRequests, setServiceRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         fetchServiceRequests();
+        checkLocationPermissionOnLoad();
     }, []);
 
     const fetchServiceRequests = async () => {
@@ -269,7 +277,7 @@ const HomeScreen = ({ navigation }: any) => {
 
                                         {request.budget && (
                                             <View style={styles.budgetBadge}>
-                                                <Text style={styles.budgetText}>₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
+                                                <Text style={styles.budgetText}>Budget: ₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
                                             </View>
                                         )}
 

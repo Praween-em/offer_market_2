@@ -1,5 +1,4 @@
-
-import { Body, Controller, Post, HttpCode, HttpStatus, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Query, HttpCode, HttpStatus, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -37,5 +36,12 @@ export class AuthController {
         return this.authService.onboard(req.user.userId, data);
     }
 
-
+    @Get('legal-terms')
+    @HttpCode(HttpStatus.OK)
+    async getLegalTerms(@Query('type') type: string) {
+        if (!type) {
+            throw new BadRequestException('Legal terms type is required');
+        }
+        return this.authService.getLegalTerms(type);
+    }
 }

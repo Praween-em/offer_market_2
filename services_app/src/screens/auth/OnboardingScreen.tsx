@@ -11,11 +11,14 @@ import {
     Alert,
     Dimensions,
     Animated,
+    Image,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { LocationService } from '../../services/LocationService';
+import { getCategoryAsset } from '../../utils/CategoryAssets';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +29,8 @@ const OnboardingScreen = ({ navigation }: any) => {
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
     const [selectedMainCategory, setSelectedMainCategory] = useState<any>(null);
+    const [detectingLocation, setDetectingLocation] = useState(false);
+    const [categorySearch, setCategorySearch] = useState('');
 
     const [form, setForm] = useState({
         providerType: '', // 'individual' or 'business'
@@ -36,6 +41,8 @@ const OnboardingScreen = ({ navigation }: any) => {
         startingPrice: '',
         serviceArea: '',
         whatsappNumber: '',
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     const progress = new Animated.Value((step - 1) / 4);
@@ -50,12 +57,37 @@ const OnboardingScreen = ({ navigation }: any) => {
             duration: 300,
             useNativeDriver: false,
         }).start();
+
+        if (step === 4) {
+            detectLocation();
+        }
     }, [step]);
 
-    const fetchCategories = async () => {
+    const detectLocation = async () => {
+        setDetectingLocation(true);
+        try {
+            const loc = await LocationService.getCurrentLocation();
+            if (loc) {
+                const address = await LocationService.reverseGeocode(loc.latitude, loc.longitude);
+                setForm(prev => ({
+                    ...prev,
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    serviceArea: address !== 'Unknown Location' ? address : prev.serviceArea
+                }));
+            }
+        } catch (error) {
+            console.error('Location detection failed:', error);
+        } finally {
+            setDetectingLocation(false);
+        }
+    };
+
+    const fetchCategories = async (providerType?: string) => {
         setLoading(true);
         try {
-            const response = await api.get('/services/categories');
+            const url = providerType ? `/services/categories?providerType=${providerType}` : '/services/categories';
+            const response = await api.get(url);
             setCategories(response.data);
         } catch (error) {
             console.error('Error fetching categories:', error);
@@ -69,6 +101,9 @@ const OnboardingScreen = ({ navigation }: any) => {
         if (step === 1 && !form.providerType) {
             Alert.alert('Selection Required', 'Please select if you are an individual or a business');
             return;
+        }
+        if (step === 1 && form.providerType) {
+            fetchCategories(form.providerType);
         }
         if (step === 2 && !selectedMainCategory) {
             Alert.alert('Selection Required', 'Please select a service category');
@@ -178,32 +213,68 @@ const OnboardingScreen = ({ navigation }: any) => {
             <Text style={styles.stepTitle}>Select Category</Text>
             <Text style={styles.stepSubtitle}>What is your primary service area?</Text>
 
+            <View style={styles.searchContainer}>
+                <Icon name="magnify" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search categories..."
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={categorySearch}
+                    onChangeText={setCategorySearch}
+                />
+                {categorySearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setCategorySearch('')} style={styles.clearSearch}>
+                        <Icon name="close-circle" size={18} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                )}
+            </View>
+
             <ScrollView>
                 <View style={styles.categoryGrid}>
-                    {categories.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.id}
-                            style={[styles.categoryCard, selectedMainCategory?.id === cat.id && styles.selectedCategoryCard]}
-                            onPress={() => {
-                                setSelectedMainCategory(cat);
-                                // If NO subcategories, automatically select the main category as the categoryId
-                                if (cat.sub_categories && cat.sub_categories.length === 0) {
-                                    setForm({ ...form, categoryId: cat.id });
-                                } else {
-                                    setForm({ ...form, categoryId: '' }); // Reset sub-category
-                                }
-                            }}
-                        >
-                            <View style={[styles.iconContainer, selectedMainCategory?.id === cat.id && styles.selectedIconContainer]}>
-                                <Icon
-                                    name={cat.icon || 'star'}
-                                    size={32}
-                                    color={selectedMainCategory?.id === cat.id ? COLORS.white : COLORS.primary}
-                                />
-                            </View>
-                            <Text style={styles.categoryName} numberOfLines={2}>{cat.name}</Text>
-                        </TouchableOpacity>
-                    ))}
+                    {categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase())).length > 0 ? (
+                        categories
+                            .filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()))
+                            .map((cat) => (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    style={[styles.categoryCard, selectedMainCategory?.id === cat.id && styles.selectedCategoryCard]}
+                                    onPress={() => {
+                                        setSelectedMainCategory(cat);
+                                        // If NO subcategories, automatically select the main category as the categoryId
+                                        if (cat.sub_categories && cat.sub_categories.length === 0) {
+                                            setForm({ ...form, categoryId: cat.id });
+                                        } else {
+                                            setForm({ ...form, categoryId: '' }); // Reset sub-category
+                                        }
+                                    }}
+                                >
+                                    <View style={[styles.iconContainer, selectedMainCategory?.id === cat.id && styles.selectedIconContainer]}>
+                                        {getCategoryAsset(cat.name) ? (
+                                            <Image
+                                                source={getCategoryAsset(cat.name)}
+                                                style={styles.categoryImage}
+                                                resizeMode="contain"
+                                            />
+                                        ) : (
+                                            <Icon
+                                                name={cat.icon || 'star'}
+                                                size={32}
+                                                color={selectedMainCategory?.id === cat.id ? COLORS.white : COLORS.primary}
+                                            />
+                                        )}
+                                    </View>
+                                    <Text style={styles.categoryName} numberOfLines={2}>{cat.name}</Text>
+                                </TouchableOpacity>
+                            ))
+                    ) : (
+                        <View style={styles.emptyResults}>
+                            <Icon name="magnify-close" size={48} color={COLORS.textSecondary} />
+                            <Text style={styles.emptyResultsText}>No categories match "{categorySearch}"</Text>
+                            <TouchableOpacity onPress={() => setCategorySearch('')}>
+                                <Text style={styles.clearText}>Clear search</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
 
@@ -309,13 +380,25 @@ const OnboardingScreen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Service Area</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. South Delhi, Gurgaon"
-                        value={form.serviceArea}
-                        onChangeText={(text) => setForm({ ...form, serviceArea: text })}
-                    />
+                    <View style={styles.labelRow}>
+                        <Text style={styles.label}>Service Area</Text>
+                        {detectingLocation && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: 8 }} />}
+                    </View>
+                    <View style={styles.locationInputContainer}>
+                        <TextInput
+                            style={[styles.input, { flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }]}
+                            placeholder="e.g. South Delhi, Gurgaon"
+                            value={form.serviceArea}
+                            onChangeText={(text) => setForm({ ...form, serviceArea: text })}
+                        />
+                        <TouchableOpacity
+                            style={styles.detectBtn}
+                            onPress={detectLocation}
+                            disabled={detectingLocation}
+                        >
+                            <Icon name="crosshairs-gps" size={20} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -472,7 +555,7 @@ const styles = StyleSheet.create({
         width: (width - SPACING.lg * 2 - SPACING.md) / 2,
         backgroundColor: COLORS.surface,
         borderRadius: 16,
-        padding: SPACING.md,
+        padding: SPACING.sm,
         marginBottom: SPACING.md,
         alignItems: 'center',
         borderWidth: 2,
@@ -483,21 +566,27 @@ const styles = StyleSheet.create({
         borderColor: COLORS.primary,
     },
     iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: '100%',
+        height: 80,
+        borderRadius: 12,
         backgroundColor: COLORS.background,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: SPACING.sm,
+        overflow: 'hidden',
     },
     selectedIconContainer: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: `${COLORS.primary}20`,
     },
     categoryName: {
         ...TYPOGRAPHY.body,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    categoryImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 8,
     },
     subCategoryItem: {
         flexDirection: 'row',
@@ -563,33 +652,50 @@ const styles = StyleSheet.create({
         marginTop: 'auto',
         paddingVertical: SPACING.lg,
     },
-    nextButton: {
-        backgroundColor: COLORS.primary,
-        height: 56,
-        borderRadius: 12,
-        justifyContent: 'center',
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
+    locationInputContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    submitButton: {
-        backgroundColor: COLORS.primary,
-        flex: 1,
-        marginLeft: SPACING.md,
-        height: 56,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    backButton: {
-        height: 56,
-        paddingHorizontal: SPACING.lg,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 12,
+    detectBtn: {
+        backgroundColor: COLORS.surface,
         borderWidth: 1,
         borderColor: COLORS.border,
+        borderLeftWidth: 0,
+        padding: SPACING.md,
+        borderTopRightRadius: 12,
+        borderBottomRightRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    nextButton: {
+        backgroundColor: COLORS.primary,
+        padding: SPACING.md,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: SPACING.lg,
+    },
+    backButton: {
+        padding: SPACING.md,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    submitButton: {
+        backgroundColor: COLORS.success || '#4CAF50',
+        padding: SPACING.md,
+        borderRadius: 12,
+        alignItems: 'center',
+        flex: 1,
+        marginLeft: SPACING.md,
     },
     buttonDisabled: {
-        opacity: 0.5,
+        opacity: 0.7,
     },
     loadingContainer: {
         flex: 1,
@@ -597,11 +703,51 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loadingText: {
+        ...TYPOGRAPHY.body,
         marginTop: SPACING.md,
-        ...TYPOGRAPHY.bodySecondary,
+        color: COLORS.textSecondary,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        borderRadius: 12,
+        paddingHorizontal: SPACING.md,
+        marginBottom: SPACING.lg,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    searchIcon: {
+        marginRight: SPACING.sm,
+    },
+    searchInput: {
+        flex: 1,
+        height: 48,
+        ...TYPOGRAPHY.body,
+        color: COLORS.text,
+    },
+    clearSearch: {
+        padding: 4,
+    },
+    emptyResults: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        width: '100%',
+    },
+    emptyResultsText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.textSecondary,
+        marginTop: SPACING.md,
+        textAlign: 'center',
+    },
+    clearText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.primary,
+        fontWeight: '700',
+        marginTop: SPACING.sm,
     },
 });
-
-
 
 export default OnboardingScreen;

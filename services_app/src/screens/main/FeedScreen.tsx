@@ -4,6 +4,8 @@ import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useNotifications } from '../../context/NotificationContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
 import { LocationService } from '../../services/LocationService';
 import NativeAdItem from '../../components/NativeAdItem';
@@ -11,6 +13,14 @@ import { getCategoryAsset } from '../../utils/CategoryAssets';
 
 const FeedScreen = ({ navigation }: any) => {
     const { refreshUser, user } = useAuth();
+    const { unreadCount, refreshUnreadCount } = useNotifications();
+
+    // Refresh unread count every time user views this screen
+    useFocusEffect(
+        useCallback(() => {
+            refreshUnreadCount();
+        }, [refreshUnreadCount])
+    );
     const [refreshing, setRefreshing] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -237,7 +247,7 @@ const FeedScreen = ({ navigation }: any) => {
                     <View style={styles.badgeRow}>
                         {item.budget && (
                             <View style={styles.budgetBadge}>
-                                <Text style={styles.budgetText}>₹{parseFloat(item.budget).toLocaleString('en-IN')}</Text>
+                                <Text style={styles.budgetText}>Budget: ₹{parseFloat(item.budget).toLocaleString('en-IN')}</Text>
                             </View>
                         )}
                         {item.urgency && (
@@ -342,6 +352,13 @@ const FeedScreen = ({ navigation }: any) => {
                         <TouchableOpacity style={styles.iconButton} onPress={toggleSearch}>
                             <Icon name="search" size={24} color={COLORS.text} />
                         </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => navigation.navigate('Notifications')}
+                        >
+                            <Icon name="bell" size={24} color={COLORS.text} />
+                            {unreadCount > 0 && <View style={styles.notificationBadge} />}
+                        </TouchableOpacity>
                     </>
                 )}
             </View>
@@ -439,6 +456,17 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.secondary,
         marginLeft: 2,
         marginTop: 8,
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: COLORS.error,
+        borderWidth: 2,
+        borderColor: COLORS.surface,
     },
     locationIconContainer: {
         width: 24,

@@ -3,6 +3,7 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { navigate } from '../navigation/NavigationRef';
 
 class NotificationService {
     async requestUserPermission() {
@@ -43,18 +44,6 @@ class NotificationService {
         }
     }
 
-    async createDefaultChannel() {
-        try {
-            await notifee.createChannel({
-                id: 'default',
-                name: 'Default Channel',
-                importance: AndroidImportance.HIGH,
-                sound: 'default',
-            });
-        } catch (error) {
-            console.error('[NotificationService] createChannel error:', error);
-        }
-    }
 
     async getToken() {
         try {
@@ -78,6 +67,7 @@ class NotificationService {
                 await api.post('/notifications/register-token', {
                     fcmToken,
                     platform: Platform.OS,
+                    appType: 'PROVIDER',
                 });
                 await AsyncStorage.setItem('fcmToken', fcmToken);
                 console.log('[NotificationService] Token registered with backend');
@@ -87,34 +77,128 @@ class NotificationService {
         }
     }
 
+    async getNotifications() {
+        try {
+            const response = await api.get('/notifications?appType=PROVIDER');
+            // Filter out notifications meant for the USER app
+            // User types: LEAD_UNLOCKED, new_offer, offer_expiring
+            const userTypes = ['LEAD_UNLOCKED', 'new_offer', 'offer_expiring'];
+            return response.data.filter((n: any) => !userTypes.includes(n.notification_type));
+        } catch (error) {
+            console.error('[NotificationService] Error fetching notifications:', error);
+            return [];
+        }
+    }
+
+    async markAsRead(id: string) {
+        try {
+            await api.post(`/notifications/${id}/read`);
+        } catch (error) {
+            console.error('[NotificationService] Error marking notification as read:', error);
+        }
+    }
+
+    private showAlertHandler: ((data: any) => void) | null = null;
+
+    setAlertHandler(handler: (data: any) => void) {
+        this.showAlertHandler = handler;
+    }
+
+    async createDefaultChannel() {
+        try {
+            await notifee.createChannel({
+                id: 'default',
+                name: 'Default Channel',
+                importance: AndroidImportance.HIGH,
+                sound: 'default',
+            });
+
+            // Alerts channel with custom sound
+            await notifee.createChannel({
+                id: 'alerts',
+                name: 'Job Alerts (Ring)',
+                importance: AndroidImportance.HIGH,
+                sound: 'alert_ring', // Must exist in android/app/src/main/res/raw
+                vibration: true,
+                vibrationPattern: [300, 500, 300, 500],
+            });
+        } catch (error) {
+            console.error('[NotificationService] createChannel error:', error);
+        }
+    }
+
     async setupNotificationListeners() {
         // Foreground
         const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
             console.log('[NotificationService] A new FCM message arrived!', JSON.stringify(remoteMessage));
+
+            const { data } = remoteMessage;
+
+            // Filter out notifications meant for the USER app
+            if (data?.type === 'LEAD_UNLOCKED') {
+                console.log('[NotificationService] Filtering out LEAD_UNLOCKED notification in Provider app');
+                return;
+            }
+
+            const isNewRequest = data?.type === 'NEW_REQUEST' || data?.type === 'new_offer'; // Supporting both for now
+
+            // If it's a new request and we're in foreground, trigger the "Ring System"
+            if (isNewRequest && this.showAlertHandler) {
+                this.showAlertHandler({
+                    id: data.requestId || data.businessId,
+                    title: remoteMessage.notification?.title || 'New Job Alert',
+                    category: data.category || 'Service Request',
+                    distance: data.distance || 'Nearby',
+                    type: data.type
+                });
+            }
 
             // Display a local notification using Notifee
             await notifee.displayNotification({
                 title: remoteMessage.notification?.title || 'New Notification',
                 body: remoteMessage.notification?.body || '',
                 android: {
-                    channelId: 'default',
+                    channelId: isNewRequest ? 'alerts' : 'default',
                     importance: AndroidImportance.HIGH,
                     pressAction: {
                         id: 'default',
                     },
-                    smallIcon: 'ic_launcher',
+                    smallIcon: 'ic_launcher', // Ensure this exists in drawable
                 },
             });
         });
 
         // Background / Quit opening logic
         messaging().onNotificationOpenedApp((remoteMessage: any) => {
-            console.log('[NotificationService] Notification caused app to open from background state:', remoteMessage.notification);
+            console.log('[NotificationService] Notification caused app to open from background state:', remoteMessage.data);
+            const { data } = remoteMessage;
+
+            if (data?.type === 'LEAD_UNLOCKED') {
+                console.log('[NotificationService] Ignoring LEAD_UNLOCKED background notification in Provider app');
+                return;
+            }
+
+            if (data?.requestId) {
+                navigate('ServiceRequestDetails', { requestId: data.requestId });
+            }
         });
 
         messaging().getInitialNotification().then((remoteMessage: any) => {
             if (remoteMessage) {
-                console.log('[NotificationService] Notification caused app to open from quit state:', remoteMessage.notification);
+                console.log('[NotificationService] Notification caused app to open from quit state:', remoteMessage.data);
+                const { data } = remoteMessage;
+
+                if (data?.type === 'LEAD_UNLOCKED') {
+                    console.log('[NotificationService] Ignoring LEAD_UNLOCKED quit notification in Provider app');
+                    return;
+                }
+
+                if (data?.requestId) {
+                    // Small delay to ensure navigator is ready
+                    setTimeout(() => {
+                        navigate('ServiceRequestDetails', { requestId: data.requestId });
+                    }, 1000);
+                }
             }
         });
 

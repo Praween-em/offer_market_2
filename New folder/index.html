@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ofera Ecosystem | Hyper-Local Marketplace</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff5e62;
+            --business-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --user-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #ffffff;
+            --success: #20c997;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--dark);
+            background-color: var(--light);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: var(--shadow);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 15px 0;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 28px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            padding: 8px;
+            border-radius: 10px;
+            color: white;
+            font-size: 20px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .cta-button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 150px 0 80px;
+            text-align: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: linear-gradient(to right, rgba(106, 17, 203, 0.1), rgba(37, 117, 252, 0.1));
+            top: -100px;
+            right: -100px;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(to right, rgba(255, 94, 98, 0.1), rgba(255, 153, 102, 0.1));
+            bottom: -50px;
+            left: -50px;
+        }
+
+        .hero h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            color: var(--gray);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .app-slider-container {
+            position: relative;
+            margin-top: 40px;
+            height: 600px;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        /* App Slider */
+        .app-slider {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .app-section {
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.05);
+            z-index: 1;
+        }
+
+        .business-section {
+            background: var(--business-gradient);
+        }
+
+        .user-section {
+            background: var(--user-gradient);
+        }
+
+        .app-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .app-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+        }
+
+        .app-icon {
+            font-size: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            width: 100px;
+            height: 100px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .app-description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 90%;
+            opacity: 0.95;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: var(--transition);
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Slider Controls */
+        .slider-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .slider-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--dark);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .slider-indicator {
+            display: flex;
+            gap: 10px;
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            z-index: 10;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .indicator-dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 60px 0 30px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .footer-column h3 {
+            font-family: 'Montserrat', sans-serif;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .footer-column h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: #aaa;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .app-slider-container {
+                height: 700px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .app-title {
+                font-size: 2.2rem;
+            }
+
+            .hero h1 {
+                font-size: 2.8rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 120px 0 60px;
+            }
+
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .app-slider-container {
+                height: 850px;
+            }
+
+            .app-section {
+                padding: 30px 20px;
+            }
+
+            .app-title {
+                font-size: 1.8rem;
+            }
+
+            .app-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 35px;
+            }
+
+            .slider-controls {
+                flex-direction: column;
+                width: 80%;
+            }
+
+            .slider-indicator {
+                right: 20px;
+            }
+        }
+
+        /* Animation for sections */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .delay-1 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-2 {
+            animation-delay: 0.4s;
+        }
+
+        .delay-3 {
+            animation-delay: 0.6s;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container nav-container">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-gem"></i>
+                </div>
+                Ofera
+            </div>
+            <div class="nav-links">
+                <a href="#business">For Businesses</a>
+                <a href="#user">For Users</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <a href="#" class="cta-button">Coming Soon</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1 class="animate-in">Ofera Ecosystem</h1>
+            <p class="animate-in delay-1">A cutting-edge, hyper-local marketplace designed to bridge the gap between
+                local retail businesses and digital-first consumers.</p>
+            <div class="hero-buttons animate-in delay-2">
+                <a href="#" class="cta-button">Notify Me When Available</a>
+                <a href="#business" class="cta-button"
+                    style="background: transparent; color: var(--primary); border: 2px solid var(--primary);">Explore
+                    Apps</a>
+            </div>
+
+            <!-- App Slider Container -->
+            <div class="app-slider-container">
+                <div class="app-slider" id="appSlider">
+                    <!-- Business App Section -->
+                    <div class="app-section business-section" id="business">
+                        <div class="app-content">
+                            <div class="app-header">
+                                <h2 class="app-title">Ofera Businesses</h2>
+                                <div class="app-icon">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                            </div>
+                            <p class="app-description">The growth engine for local merchants. Digitize your physical
+                                presence and attract more footfall with data-driven offers.</p>
+
+                            <div class="features-grid">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <h3 class="feature-title">Dynamic Offer Engine</h3>
+                                    <p class="feature-desc">Supports 14+ different offer types including BOGO, %
+                                        Discounts, Flat Off, Free Gifts, and Tiered Spending rewards.</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <h3 class="feature-title">Campaign Management</h3>
+                                    <p class="feature-desc">Create multiple branches and run localized campaigns with
+                                        specific start/end dates.</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </div>
+                                    <h3 class="feature-title">Business Dashboard</h3>
+                                    <p class="feature-desc">Real-time visibility into offer performance (Views, Clicks,
+                                        Saves, and Shares).</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <h3 class="feature-title">Lead Generation</h3>
+                                    <p class="feature-desc">Receive "Verified Leads"—contact details of highly
+                                        interested customers who interacted with your offers.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User App Section -->
+                    <div class="app-section user-section" id="user">
+                        <div class="app-content">
+                            <div class="app-header">
+                                <h2 class="app-title">Ofera User App</h2>
+                                <div class="app-icon">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                            </div>
+                            <p class="app-description">The ultimate deal-hunting companion for consumers. Discover the
+                                best deals happening in your immediate vicinity and across popular online platforms.</p>
+
+                            <div class="features-grid">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </div>
+                                    <h3 class="feature-title">Hyper-Local Discovery</h3>
+                                    <p class="feature-desc">Browse offers based on your current location, categories, or
+                                        specific business types.</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <h3 class="feature-title">Hot Deals Feed</h3>
+                                    <p class="feature-desc">Curated section of high-value, time-sensitive "Flash Deals"
+                                        combined with high-commission online affiliate offers.</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <h3 class="feature-title">Follow & Favourite</h3>
+                                    <p class="feature-desc">Follow your favorite local shops to get notified whenever a
+                                        new sale is posted.</p>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-search"></i>
+                                    </div>
+                                    <h3 class="feature-title">Smart Search</h3>
+                                    <p class="feature-desc">Find specifically what you need—whether it's "Buy 1 Get 1"
+                                        on shoes or "50% off" on electronics.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slider Controls -->
+                <div class="slider-controls">
+                    <button class="slider-btn" id="prevBtn">
+                        <i class="fas fa-arrow-left"></i>
+                        For Businesses
+                    </button>
+                    <button class="slider-btn" id="nextBtn">
+                        For Users
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Slider Indicator -->
+                <div class="slider-indicator">
+                    <div class="indicator-dot active" data-slide="0"></div>
+                    <div class="indicator-dot" data-slide="1"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Ofera Ecosystem</h3>
+                    <p>A Real-Time Economic Engine for local markets. Empowering merchants with digital marketing tools
+                        and giving users a powerful way to save money locally and online.</p>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Applications</h3>
+                    <ul class="footer-links">
+                        <li><a href="#business">Ofera Businesses</a></li>
+                        <li><a href="#user">Ofera User App</a></li>
+                        <li><a href="#">Android App (Coming Soon)</a></li>
+                        <li><a href="#">Web Platform</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Contact</h3>
+                    <ul class="footer-links">
+                        <li><a href="mailto:info@ofera.com">info@ofera.com</a></li>
+                        <li><a href="#">Business Inquiries</a></li>
+                        <li><a href="#">Partnerships</a></li>
+                        <li><a href="#">Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Stay Updated</h3>
+                    <p>Get notified when Ofera launches in your area.</p>
+                    <a href="#" class="cta-button" style="margin-top: 15px;">Join Waitlist</a>
+                </div>
+            </div>
+
+            <div class="copyright">
+                &copy; 2023 Ofera Ecosystem. All rights reserved. | Transforming local retail through digital
+                innovation.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const slider = document.getElementById('appSlider');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const indicatorDots = document.querySelectorAll('.indicator-dot');
+            let currentSlide = 0;
+
+            // Function to update slider position
+            function updateSlider() {
+                slider.style.transform = `translateX(-${currentSlide * 50}%)`;
+
+                // Update active indicator
+                indicatorDots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentSlide);
+                });
+
+                // Update button text based on current slide
+                if (currentSlide === 0) {
+                    prevBtn.innerHTML = `<i class="fas fa-arrow-left"></i> For Businesses`;
+                    nextBtn.innerHTML = `For Users <i class="fas fa-arrow-right"></i>`;
+                } else {
+                    prevBtn.innerHTML = `<i class="fas fa-arrow-left"></i> For Businesses`;
+                    nextBtn.innerHTML = `For Users <i class="fas fa-arrow-right"></i>`;
+                }
+            }
+
+            // Next button click
+            nextBtn.addEventListener('click', function () {
+                currentSlide = (currentSlide + 1) % 2;
+                updateSlider();
+            });
+
+            // Previous button click
+            prevBtn.addEventListener('click', function () {
+                currentSlide = (currentSlide - 1 + 2) % 2;
+                updateSlider();
+            });
+
+            // Indicator dot clicks
+            indicatorDots.forEach((dot, index) => {
+                dot.addEventListener('click', function () {
+                    currentSlide = index;
+                    updateSlider();
+                });
+            });
+
+            // Add animation to feature items on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, observerOptions);
+
+            // Observe elements for animation
+            document.querySelectorAll('.feature-item').forEach((item, index) => {
+                // Stagger animation delays
+                item.classList.add(`delay-${(index % 3) + 1}`);
+                observer.observe(item);
+            });
+
+            // Smooth scrolling for navigation links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        // If the target is one of the app sections, slide to it
+                        if (targetId === '#business') {
+                            currentSlide = 0;
+                            updateSlider();
+                        } else if (targetId === '#user') {
+                            currentSlide = 1;
+                            updateSlider();
+                        } else {
+                            // Regular smooth scroll for other sections
+                            window.scrollTo({
+                                top: targetElement.offsetTop - 80,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Initialize slider position
+            updateSlider();
+        });
+    </script>
+</body>
+
+</html>

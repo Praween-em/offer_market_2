@@ -34,12 +34,19 @@ const Navigation = () => {
     );
 };
 
+import { navigationRef } from './NavigationRef';
+import { NotificationProvider } from '../context/NotificationContext';
+import RandomVerificationModal from '../components/RandomVerificationModal';
+
 const RootNavigator = () => {
     return (
         <AuthProvider>
-            <NavigationContainer>
-                <Navigation />
-            </NavigationContainer>
+            <NotificationProvider>
+                <NavigationContainer ref={navigationRef}>
+                    <Navigation />
+                </NavigationContainer>
+                <RandomVerificationModal />
+            </NotificationProvider>
         </AuthProvider>
     );
 };

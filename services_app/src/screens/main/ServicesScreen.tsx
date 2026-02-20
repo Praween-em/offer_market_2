@@ -9,6 +9,8 @@ import {
     Alert,
     ActivityIndicator,
     RefreshControl,
+    Modal,
+    Image,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
@@ -20,6 +22,7 @@ const ServicesScreen = ({ navigation }: any) => {
     const [services, setServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchServices();
@@ -124,8 +127,24 @@ const ServicesScreen = ({ navigation }: any) => {
                 ) : (
                     services.map((service) => (
                         <View key={service.id} style={styles.serviceCard}>
-                            <View style={styles.serviceIcon}>
-                                <Icon name="zap" size={20} color={COLORS.primary} />
+                            <View style={styles.imageContainer}>
+                                {service.service_images && service.service_images.length > 0 ? (
+                                    <TouchableOpacity
+                                        activeOpacity={0.9}
+                                        onPress={() => setSelectedImage(service.service_images[0].image_url)}
+                                        style={styles.imageWrapper}
+                                    >
+                                        <Image
+                                            source={{ uri: service.service_images[0].image_url }}
+                                            style={styles.serviceImage}
+                                            resizeMode="contain"
+                                        />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.serviceIcon}>
+                                        <Icon name="zap" size={20} color={COLORS.primary} />
+                                    </View>
+                                )}
                             </View>
                             <View style={styles.serviceInfo}>
                                 <Text style={styles.serviceTitle}>{service.title}</Text>
@@ -167,6 +186,28 @@ const ServicesScreen = ({ navigation }: any) => {
                     ))
                 )}
             </ScrollView>
+
+            {/* Full Screen Image Viewer Modal */}
+            <Modal
+                visible={!!selectedImage}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedImage(null)}
+            >
+                <View style={styles.fullScreenModal}>
+                    <TouchableOpacity
+                        style={styles.closeModal}
+                        onPress={() => setSelectedImage(null)}
+                    >
+                        <Icon name="x" size={30} color="#FFF" />
+                    </TouchableOpacity>
+                    <Image
+                        source={{ uri: selectedImage || '' }}
+                        style={styles.fullImage}
+                        resizeMode="contain"
+                    />
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -250,14 +291,23 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         ...SHADOWS.small,
     },
-    serviceIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+    imageContainer: {
+        width: 80,
+        height: 80,
         backgroundColor: `${COLORS.primary}10`,
+        borderRadius: 12,
+        marginRight: SPACING.md,
+        overflow: 'hidden',
+    },
+    serviceImage: {
+        width: '100%',
+        height: '100%',
+    },
+    serviceIcon: {
+        width: '100%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: SPACING.md,
     },
     serviceInfo: {
         flex: 1,
@@ -331,6 +381,32 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEE2E2',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    imageWrapper: {
+        width: '100%',
+        height: '100%',
+    },
+    fullScreenModal: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    closeModal: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        zIndex: 1001,
+        padding: 10,
+    },
+    fullImage: {
+        width: '100%',
+        height: '90%',
     },
 });
 

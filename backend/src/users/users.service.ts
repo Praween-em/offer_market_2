@@ -450,4 +450,25 @@ export class UsersService {
             profilePictureUrl: finalProfilePic
         });
     }
+    async deleteAccount(userId: string) {
+        try {
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + 45);
+
+            const grievance = await this.prisma.grievance_redressal.create({
+                data: {
+                    user_id: userId,
+                    issue_type: 'ERASURE',
+                    status: 'OPEN',
+                    resolution_details: 'Account deletion requested via mobile app.',
+                    deadline_timestamp: deadline,
+                }
+            });
+
+            return { message: 'Deletion request submitted successfully', ticket_id: grievance.ticket_id };
+        } catch (error) {
+            console.error('Error submitting account deletion request:', error);
+            throw new Error('Failed to submit deletion request.');
+        }
+    }
 }

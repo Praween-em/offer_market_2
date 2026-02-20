@@ -75,11 +75,19 @@ const NotificationScreen = ({ navigation }: any) => {
         fetchNotifications();
     }, []);
 
-    const markAsRead = async (id: string) => {
+    const markAsRead = async (id: string, type?: string, data?: any) => {
         // Optimistic update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         await NotificationService.markAsRead(id);
         refreshUnreadCount();
+
+        // Navigate if it's a critical notification
+        if (type === 'LEAD_UNLOCKED') {
+            const leadId = data?.leadId || (typeof data === 'string' ? JSON.parse(data).leadId : null);
+            if (leadId) {
+                navigation.navigate('ServiceRequestDetails', { request: { id: leadId } });
+            }
+        }
     };
 
     const markAllAsRead = async () => {
@@ -143,9 +151,7 @@ const NotificationScreen = ({ navigation }: any) => {
                 style={[styles.notificationItem, !item.is_read && styles.unreadItem]}
                 activeOpacity={0.7}
                 onPress={() => {
-                    if (!item.is_read) {
-                        markAsRead(item.id);
-                    }
+                    markAsRead(item.id, type, item.data);
                 }}
             >
                 <View style={[styles.iconContainer, { backgroundColor: `${getIconColor(type)}15` }]}>

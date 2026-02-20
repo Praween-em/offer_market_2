@@ -137,29 +137,74 @@ class LocationServiceClass {
      * Reverse geocode coordinates to a human-readable address
      */
     async reverseGeocode(lat: number, lon: number): Promise<string> {
+        const MAX_RETRIES = 3;
+        const DELAY_MS = 1000;
+
+        for (let i = 0; i < MAX_RETRIES; i++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+                    {
+                        headers: { 'User-Agent': 'Sahayaq/1.0 (contact@sahayaq.com)' }, // Compliant UA
+                        signal: controller.signal
+                    }
+                );
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const address = data.address;
+                    // Prioritize specific locality components
+                    const locality = address.suburb || address.neighbourhood || address.residential || address.village || address.city_district || '';
+                    const city = address.city || address.town || address.municipality || address.state_district || '';
+                    const state = address.state || '';
+
+                    // Construct address
+                    if (locality && city) return `${locality}, ${city}`;
+                    if (city && state) return `${city}, ${state}`;
+                    if (data.display_name) {
+                        // Truncate display name if too long
+                        return data.display_name.split(',').slice(0, 2).join(',');
+                    }
+                }
+            } catch (error) {
+                console.warn(`Reverse geocoding attempt ${i + 1} failed:`, error);
+                if (i < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(() => resolve(true), DELAY_MS * (Math.pow(2, i)))); // Exponential backoff
+                }
+            }
+        }
+
+        // Fallback to BigDataCloud if Nominatim fails
         try {
+            console.log('Nominatim failed, trying BigDataCloud...');
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
-                { headers: { 'User-Agent': 'Sahayaq-App' } }
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
             );
             const data = await response.json();
 
-            if (data && data.display_name) {
-                const address = data.address;
-                const city = address.city || address.town || address.village || address.suburb || '';
-                const road = address.road || '';
-                const neighbourhood = address.neighbourhood || address.suburb || '';
+            if (data) {
+                const locality = data.locality || data.city || '';
+                const city = data.principalSubdivision || data.countryName || '';
 
-                // Construct a shorter, more relevant address for "Service Area"
-                if (neighbourhood && city) return `${neighbourhood}, ${city}`;
-                if (road && city) return `${road}, ${city}`;
-                return city || data.display_name;
+                if (locality && city) return `${locality}, ${city}`;
+                if (locality) return locality;
+                if (city) return city;
             }
-            return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        } catch (error) {
-            console.error('Reverse geocoding failed:', error);
-            return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        } catch (bdcError) {
+            console.error('BigDataCloud fallback failed:', bdcError);
         }
+
+        // Final fallback
+        return "Unknown Location";
     }
 }
 

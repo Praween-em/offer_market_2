@@ -80,4 +80,9 @@ export class UsersController {
     updateNominee(@Request() req: any, @Body() data: { name: string; contact: string; relationship: string }) {
         return this.usersService.updateNominee(req.user.userId, data);
     }
+    @UseGuards(JwtAuthGuard)
+    @Delete('account')
+    deleteAccount(@Request() req: any) {
+        return this.usersService.deleteAccount(req.user.userId);
+    }
 }

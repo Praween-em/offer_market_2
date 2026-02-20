@@ -244,7 +244,7 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                         {request.budget && (
                             <View style={styles.budgetBadge}>
                                 <MaterialCommunityIcons name="cash" size={14} color="#10B981" />
-                                <Text style={styles.budgetText}>₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
+                                <Text style={styles.budgetText}>Budget: ₹{parseFloat(request.budget).toLocaleString('en-IN')}</Text>
                             </View>
                         )}
                         {request.urgency && (

@@ -1,14 +1,28 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import NotificationSideSheet from '../../components/NotificationSideSheet';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { useNotifications } from '../../context/NotificationContext';
+import { useFocusEffect } from '@react-navigation/native';
+
+const BANNER_AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-5362340568713961/6437577804';
 
 const DashboardScreen = () => {
+    const { width: SCREEN_WIDTH } = useWindowDimensions();
     const { refreshUser } = useAuth();
+    const { unreadCount, refreshUnreadCount } = useNotifications();
     const [refreshing, setRefreshing] = useState(false);
+
+    // Refresh unread count every time user views this screen
+    useFocusEffect(
+        useCallback(() => {
+            refreshUnreadCount();
+        }, [refreshUnreadCount])
+    );
     const [showNotifications, setShowNotifications] = useState(false);
     const [stats, setStats] = useState({
         totalCalls: 0,
@@ -62,6 +76,7 @@ const DashboardScreen = () => {
                         onPress={() => setShowNotifications(true)}
                     >
                         <Icon name="bell" size={24} color={COLORS.text} />
+                        {unreadCount > 0 && <View style={styles.notificationBadge} />}
                     </TouchableOpacity>
                 </View>
 
@@ -69,7 +84,7 @@ const DashboardScreen = () => {
                     <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
                 ) : (
                     <View style={styles.statsContainer}>
-                        <View style={styles.statCard}>
+                        <View style={[styles.statCard, { width: SCREEN_WIDTH < 350 ? '100%' : '48%', marginBottom: SCREEN_WIDTH < 350 ? SPACING.md : 0 }]}>
                             <View style={[styles.iconCircle, { backgroundColor: '#EEF2FF' }]}>
                                 <Icon name="phone" size={20} color={COLORS.primary} />
                             </View>
@@ -77,7 +92,7 @@ const DashboardScreen = () => {
                             <Text style={styles.statValue}>{stats.totalCalls}</Text>
                             <Text style={styles.statSubValue}>+{stats.todayCalls} today</Text>
                         </View>
-                        <View style={styles.statCard}>
+                        <View style={[styles.statCard, { width: SCREEN_WIDTH < 350 ? '100%' : '48%', marginBottom: SCREEN_WIDTH < 350 ? SPACING.md : 0 }]}>
                             <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
                                 <Icon name="message-circle" size={20} color={COLORS.secondary} />
                             </View>
@@ -99,6 +114,17 @@ const DashboardScreen = () => {
                             </Text>
                         </View>
                     </View>
+                </View>
+
+                {/* Banner Ad at bottom */}
+                <View style={styles.bannerContainer}>
+                    <BannerAd
+                        unitId={BANNER_AD_UNIT_ID}
+                        size={BannerAdSize.MEDIUM_RECTANGLE}
+                        requestOptions={{
+                            requestNonPersonalizedAdsOnly: true,
+                        }}
+                    />
                 </View>
 
             </ScrollView>
@@ -123,6 +149,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: SPACING.xl,
+        marginTop: SPACING.sm,
     },
     notificationButton: {
         width: 48,
@@ -133,10 +160,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: COLORS.border,
+        position: 'relative',
         ...SHADOWS.small,
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: COLORS.error,
+        borderWidth: 2,
+        borderColor: COLORS.surface,
+        zIndex: 999,
+        elevation: 5,
     },
     statsContainer: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
         marginBottom: SPACING.xl,
     },
@@ -144,7 +186,6 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.surface,
         padding: SPACING.lg,
         borderRadius: 20,
-        width: '48%',
         borderWidth: 1,
         borderColor: COLORS.border,
         ...SHADOWS.small,
@@ -181,9 +222,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: `${COLORS.primary}10`,
-        padding: SPACING.md,
-        borderRadius: 16,
+        padding: SPACING.lg,
+        borderRadius: 20,
         gap: SPACING.md,
+        marginTop: SPACING.md,
     },
     insightText: {
         flex: 1,
@@ -207,6 +249,11 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    bannerContainer: {
+        alignItems: 'center',
+        marginTop: SPACING.xxl,
+        paddingBottom: SPACING.xl,
     },
 });
 

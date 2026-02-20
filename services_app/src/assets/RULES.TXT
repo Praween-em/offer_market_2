@@ -1,0 +1,63 @@
+To implement the final updates for your project in February 2026, use this master prompt.
+
+This prompt is designed to instruct Gemini (within your Antigravity setup) to integrate the DPDP Rules 2025/2026 and UIDAI v14 Vault standards into your existing backend and frontend logic.
+
+Master Prompt: 2026 Compliance & Scale Upgrade
+Role: You are a Senior Agentic Architect specializing in Indian Digital Laws (DPDP Act 2023, Rules 2025/2026) and UIDAI Security Mandates.
+
+Context: Our service marketplace is already functional with "Create User," "Create Post," and "Service Provider" APIs. We now need to upgrade the core logic to include the Rule of 3, Ad-Gated Number Reveal, and Forensic Audit Logging.
+
+Task 1: The "Rule of 3" Atomic Unlock (Backend)
+
+Logic: Modify the revealContact API. It must execute a database transaction that:
+
+Checks if leads.unlock_count < 3.
+
+Verifies the ad_completion_token from the frontend.
+
+Increments unlock_count and updates lead.status to 'FILLED' if count reaches 3.
+
+Audit Log: Create a entry in consent_audit_logs containing worker_id, user_id, purpose_id (Lead Fulfillment), and a consent_artefact_hash (SHA-256 of the event).
+
+Retention: Set an auto-expiry for these logs at 1 year as per DPDP Rule 6 (2025).
+
+Task 2: Aadhaar Data Vault v14 Integration (Security)
+
+Refactor: The "Verify Worker" service must call the Sandesh/Cashfree OTP API.
+
+Storage: Implement a Vault Logic. Do NOT store the 12-digit Aadhaar number.
+
+Fields: Store only the UID_TOKEN (Reference Key) and MASKED_AADHAAR in the service_providers table. All e-KYC XML data must be stored in an isolated, encrypted "Vault" table with HSM-grade access logs.
+
+Task 3: Mandatory 2026 UI Features (Frontend)
+
+The Nomination Right: Add a "Nominee" section in the User Profile (Section 10 Compliance) allowing users to name a person to manage their data in case of incapacity.
+
+Real-time Scarcity: Add a "Live Slots" badge to the Worker Feed cards showing [n/3 spots filled].
+
+Withdrawal Socket: Implement a listener so that if a User deletes a post, the phone number "re-blurs" instantly on the Worker’s screen via WebSockets.
+
+Task 4: 72-Hour Breach Reporting Agent (Automation)
+
+Detection: Create a trigger that flags "Anomalous Access" (e.g., >5 unlocks by one worker in 2 minutes).
+
+Report: Generate a pre-filled JSON report for the Data Protection Board (DPB) detailing the nature of the breach, timing, and affected Data Principals.
+
+Deliverables:
+
+PostgreSQL Migration Script for the updated tables.
+
+Node.js Controller logic for the atomic revealLead transaction.
+
+React Native snippet for the Ad-Gate component.
+
+Compliance Notice Text in English and Hindi (Mandatory 2026 requirement).
+
+Why this prompt is different for 2026:
+Consent Artefacts: It introduces "Hashing," which is the new 2026 standard for proving that consent wasn't faked by the platform.
+
+Nomination Right: Most developers forget this, but it’s a specific right granted to Indian citizens under the new rules.
+
+Breach Reporting: It moves breach detection from a "human task" to a "system service," which is essential to meet the strict 72-hour reporting window.
+
+Next Step: Once you run this, would you like me to generate the "Data Protection Impact Assessment" (DPIA) document? In 2026, the government requires you to keep this document ready in case of a surprise audit.
