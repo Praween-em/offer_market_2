@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../services/api';
 
 const EditProfileScreen = ({ navigation }: any) => {
@@ -28,46 +27,9 @@ const EditProfileScreen = ({ navigation }: any) => {
 
     const [displayName, setDisplayName] = useState(user?.display_name || '');
     const [email, setEmail] = useState(user?.email || '');
-    const [profilePicture, setProfilePicture] = useState(user?.profile_picture || '');
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
-    const pickImage = async () => {
-        const result = await launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.7,
-        });
-
-        if (result.assets && result.assets.length > 0) {
-            const asset = result.assets[0];
-            uploadImage(asset);
-        }
-    };
-
-    const uploadImage = async (asset: any) => {
-        setIsUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', {
-                uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
-                type: asset.type,
-                name: asset.fileName || 'profile.jpg',
-            } as any);
-
-            const response = await api.post('/bunny/upload?folder=profiles', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-
-            setProfilePicture(response.data.url);
-        } catch (error) {
-            console.error('Upload failed', error);
-            Alert.alert(t('error'), 'Could not upload photo.');
-        } finally {
-            setIsUploading(false);
-        }
-    };
 
     const handleSave = async () => {
         if (!displayName.trim()) {
@@ -80,7 +42,6 @@ const EditProfileScreen = ({ navigation }: any) => {
             const response = await api.patch('/users/profile', {
                 display_name: displayName,
                 email: email,
-                profile_picture: profilePicture,
             });
 
             if (response.data) {
@@ -116,22 +77,9 @@ const EditProfileScreen = ({ navigation }: any) => {
                 {/* Avatar Section */}
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
-                        <Image
-                            source={{ uri: profilePicture || 'https://via.placeholder.com/100' }}
-                            style={styles.avatar}
-                        />
-                        {isUploading && (
-                            <View style={styles.uploadOverlay}>
-                                <ActivityIndicator color="#FFF" />
-                            </View>
-                        )}
-                        <TouchableOpacity
-                            style={styles.changePhotoBtn}
-                            onPress={pickImage}
-                            disabled={isUploading}
-                        >
-                            <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
-                        </TouchableOpacity>
+                        <View style={styles.avatarPlaceholder}>
+                            <MaterialCommunityIcons name="account" size={80} color="#B2BEC3" />
+                        </View>
                     </View>
                 </View>
 
@@ -230,31 +178,15 @@ const styles = StyleSheet.create({
     avatarContainer: {
         position: 'relative',
     },
-    avatar: {
+    avatarPlaceholder: {
         width: 120,
         height: 120,
         borderRadius: 60,
         backgroundColor: '#F8F9FA',
-    },
-    changePhotoBtn: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#FF4757',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: '#FFF',
-    },
-    uploadOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F1F2F6',
     },
     form: {
         paddingHorizontal: 24,

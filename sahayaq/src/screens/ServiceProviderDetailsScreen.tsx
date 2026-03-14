@@ -11,6 +11,7 @@ import {
     Platform,
     Share,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { COLORS } from '../utils/theme';
 import ReportModal from '../components/ReportModal';
 import AdGateModal from '../components/AdGateModal';
+import AddReviewModal from '../components/AddReviewModal';
 
 const { width } = Dimensions.get('window');
 
@@ -35,10 +37,26 @@ const ServiceProviderDetailsScreen = () => {
     const [showAdGate, setShowAdGate] = useState(false);
     const [pendingAction, setPendingAction] = useState<'call' | 'whatsapp' | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
 
     useEffect(() => {
         fetchProviderDetails();
+        fetchReviews();
     }, [providerId]);
+
+    const fetchReviews = async () => {
+        setLoadingReviews(true);
+        try {
+            const response = await api.get(`/reviews/provider/${providerId}`);
+            setReviews(response.data || []);
+        } catch (error) {
+            console.error('Fetch reviews error:', error);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
 
     const fetchProviderDetails = async () => {
         try {
@@ -112,6 +130,17 @@ const ServiceProviderDetailsScreen = () => {
             console.error('Unlock error:', error);
             Alert.alert('Error', 'Failed to unlock contact details. Please try again.');
         }
+    };
+
+    const handleReviewSuccess = () => {
+        setShowReviewModal(false);
+        fetchReviews();
+        fetchProviderDetails(); // Refresh overall rating
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
     };
 
     const handleShare = async () => {
@@ -317,6 +346,55 @@ const ServiceProviderDetailsScreen = () => {
                         ))}
                     </View>
 
+                    {/* Reviews Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>{t('reviews' as any) || 'Reviews'}</Text>
+                            <TouchableOpacity
+                                style={styles.addReviewBtn}
+                                onPress={() => setShowReviewModal(true)}
+                            >
+                                <MaterialCommunityIcons name="pencil-plus-outline" size={16} color={COLORS.primary} />
+                                <Text style={styles.addReviewBtnText}>Write a Review</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {loadingReviews ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : reviews.length === 0 ? (
+                            <View style={styles.emptyReviews}>
+                                <MaterialCommunityIcons name="star-face" size={40} color="#DFE6E9" />
+                                <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to rate!</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.reviewsList}>
+                                {reviews.map((item: any, index: number) => (
+                                    <View key={index} style={styles.reviewCard}>
+                                        <View style={styles.reviewHeader}>
+                                            <View style={styles.reviewerInfo}>
+                                                <Image
+                                                    source={{ uri: item.users?.profile_picture || 'https://via.placeholder.com/40' }}
+                                                    style={styles.reviewerAvatar}
+                                                />
+                                                <View>
+                                                    <Text style={styles.reviewerName}>{item.users?.display_name || 'Anonymous'}</Text>
+                                                    <Text style={styles.reviewDate}>{formatDate(item.created_at)}</Text>
+                                                </View>
+                                            </View>
+                                            <View style={styles.reviewRating}>
+                                                <MaterialCommunityIcons name="star" size={14} color="#FFA502" />
+                                                <Text style={styles.reviewRatingText}>{item.rating}</Text>
+                                            </View>
+                                        </View>
+                                        {item.comment && (
+                                            <Text style={styles.reviewComment}>{item.comment}</Text>
+                                        ) || null}
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+
                     <View style={{ height: 100 }} />
                 </View>
             </ScrollView>
@@ -343,6 +421,13 @@ const ServiceProviderDetailsScreen = () => {
                 visible={showAdGate}
                 onClose={() => setShowAdGate(false)}
                 onAdComplete={handleAdComplete}
+            />
+
+            <AddReviewModal
+                visible={showReviewModal}
+                providerId={providerId}
+                onClose={() => setShowReviewModal(false)}
+                onSuccess={handleReviewSuccess}
             />
 
             {/* Full Screen Image Viewer Modal */}
@@ -687,6 +772,94 @@ const styles = StyleSheet.create({
     fullImage: {
         width: '100%',
         height: '90%',
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    addReviewBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: COLORS.primary + '10',
+    },
+    addReviewBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    emptyReviews: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        backgroundColor: '#F8F9FA',
+        borderRadius: 16,
+        gap: 8,
+    },
+    emptyReviewsText: {
+        fontSize: 13,
+        color: '#999',
+        fontWeight: '600',
+    },
+    reviewsList: {
+        gap: 16,
+    },
+    reviewCard: {
+        backgroundColor: '#F8F9FA',
+        padding: 16,
+        borderRadius: 16,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    reviewerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    reviewerAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#DFE6E9',
+    },
+    reviewerName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#2D3436',
+    },
+    reviewDate: {
+        fontSize: 11,
+        color: '#999',
+        fontWeight: '500',
+    },
+    reviewRating: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FFF',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#F1F2F6',
+    },
+    reviewRatingText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#2D3436',
+    },
+    reviewComment: {
+        fontSize: 14,
+        color: '#636E72',
+        lineHeight: 20,
     },
 });
 

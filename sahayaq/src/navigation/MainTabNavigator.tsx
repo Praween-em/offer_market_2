@@ -35,7 +35,7 @@ const MainTabNavigator = () => {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#3949AB',
+                tabBarActiveTintColor: '#078c34',
                 tabBarInactiveTintColor: '#B2BEC3',
                 tabBarStyle: {
                     height: 60,
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#3949AB',
+        backgroundColor: '#078c34',
         alignItems: 'center',
         justifyContent: 'center',
         elevation: 8,
-        shadowColor: '#3949AB',
+        shadowColor: '#078c34',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.8,
         shadowRadius: 8,
         borderWidth: 4,
         borderColor: '#FFF',

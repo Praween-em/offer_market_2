@@ -1,5 +1,5 @@
 export const COLORS = {
-    primary: '#3949AB', // Royal Indigo
+    primary: '#078c34', // Royal Indigo
     secondary: '#FBC02D', // Amber Gold
     accent: '#FF4081', // Pink Accent
     background: '#F5F7FA',

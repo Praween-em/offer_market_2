@@ -61,7 +61,7 @@ const PrivacyPolicyScreen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>© 2026 Sahayaq Platforms. DPDP Compliant.</Text>
+                    <Text style={styles.footerText}>© 2026 Ride Andhra Tech Solutions. DPDP Compliant.</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

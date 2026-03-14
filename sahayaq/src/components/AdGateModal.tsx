@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,87 +9,118 @@ import {
     Alert,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
 import {
     RewardedAd,
     RewardedAdEventType,
-    AdEventType,
     TestIds,
+    AdEventType,
 } from 'react-native-google-mobile-ads';
-import { useLanguage } from '../context/LanguageContext';
+import { AD_IDS } from '../utils/adConfig';
 
 interface AdGateModalProps {
     visible: boolean;
     onClose: () => void;
     onAdComplete: (token: string) => void;
+    leadId?: string; // Made optional if not used in Sahayaq App
 }
 
-// Rewarded Ad Instance - Use production ID
-const adUnitId = 'ca-app-pub-5362340568713961/5188075314';
+// WARNING: Using production Ad Unit IDs during development can lead to account suspension.
+// Recommend registering test devices in the AdMob console.
+const REWARDED_AD_UNIT_ID = AD_IDS.REWARDED;
+
 const AdGateModal: React.FC<AdGateModalProps> = ({
     visible,
     onClose,
     onAdComplete,
+    leadId,
 }) => {
     const [adInstance, setAdInstance] = useState<RewardedAd | null>(null);
     const [adLoaded, setAdLoaded] = useState(false);
     const [isShowing, setIsShowing] = useState(false);
-    const { t } = useLanguage();
+    const [adWatched, setAdWatched] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!visible) {
+            // Cleanup ad instance when modal is hidden
             setAdInstance(null);
             setAdLoaded(false);
+            setAdWatched(false);
+            setLoadError(null);
             return;
         }
 
         let isSubscribed = true;
+        let timeoutId: ReturnType<typeof setTimeout>;
 
-        // Create a FRESH instance
-        const newInstance = RewardedAd.createForAdRequest(adUnitId, {
+        // Create a FRESH instance every time the modal opens
+        const newInstance = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
             requestNonPersonalizedAdsOnly: true,
-            keywords: ['service', 'repair', 'home help'],
         });
 
         setAdInstance(newInstance);
 
+        const loadAd = (instance: RewardedAd) => {
+            setLoadError(null);
+            setAdLoaded(false);
+            instance.load();
+
+            // 15 second timeout for ad loading
+            timeoutId = setTimeout(() => {
+                if (isSubscribed && !adLoaded) {
+                    setLoadError('Ad load timed out. Please try again.');
+                }
+            }, 15000);
+        };
+
         const unsubscribeLoaded = newInstance.addAdEventListener(RewardedAdEventType.LOADED, () => {
-            if (isSubscribed) setAdLoaded(true);
+            if (isSubscribed) {
+                setAdLoaded(true);
+                setLoadError(null);
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+        });
+
+        const unsubscribeError = newInstance.addAdEventListener(AdEventType.ERROR, (error) => {
+            if (isSubscribed) {
+                console.error('Ad Load Error:', error);
+                setLoadError(`Failed to load ad: ${error.message}`);
+                setAdLoaded(false);
+                if (timeoutId) clearTimeout(timeoutId);
+            }
         });
 
         const unsubscribeEarned = newInstance.addAdEventListener(
             RewardedAdEventType.EARNED_REWARD,
             reward => {
                 console.log('User earned reward of ', reward);
-                // Generate ad completion token
-                const adCompletionToken = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-                onAdComplete(adCompletionToken);
+                setAdWatched(true);
             },
         );
-
-        const unsubscribeError = newInstance.addAdEventListener(AdEventType.ERROR, (error) => {
-            console.error('Sahayaq Ad Error:', error);
-            if (isSubscribed) setAdLoaded(false);
-        });
 
         const unsubscribeClosed = newInstance.addAdEventListener(
             AdEventType.CLOSED,
             () => {
                 setIsShowing(false);
                 setAdLoaded(false);
-                // Ad closed, trigger onClose to hide modal
-                onClose();
+                // After closing, if they didn't finish, we'd need a new instance to try again
+                // But usually they just click 'Close' on the modal. 
+                // If they remain in modal, we reload.
+                if (!adWatched) {
+                    loadAd(newInstance);
+                }
             },
         );
 
-        newInstance.load();
+        loadAd(newInstance);
 
         return () => {
             isSubscribed = false;
             unsubscribeLoaded();
+            unsubscribeError();
             unsubscribeEarned();
             unsubscribeClosed();
-            unsubscribeError();
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [visible]);
 
@@ -97,9 +128,29 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
         if (adLoaded && adInstance) {
             setIsShowing(true);
             adInstance.show();
+        } else if (loadError) {
+            if (adInstance) {
+                setLoadError(null);
+                setAdLoaded(false);
+                adInstance.load();
+            }
         } else {
-            Alert.alert(t('adNotReady') || 'Ad not ready', t('adWaitMessage') || 'Please wait while we prepare the advertisement.');
+            Alert.alert('Ad Not Ready', 'Please wait while we prepare the advertisement.');
         }
+    };
+
+    const handleRetry = () => {
+        if (adInstance) {
+            setLoadError(null);
+            setAdLoaded(false);
+            adInstance.load();
+        }
+    };
+
+    const handleContinue = () => {
+        // Generate ad completion token
+        const adCompletionToken = `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        onAdComplete(adCompletionToken);
     };
 
     return (
@@ -133,34 +184,59 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
                         </Text>
                     </View>
 
-                    {/* Ad Status */}
+                    {/* Ad Container */}
                     <View style={styles.adContainer}>
-                        {!adLoaded ? (
+                        {loadError ? (
+                            <View style={styles.adContent}>
+                                <MaterialCommunityIcons name="alert-circle" size={80} color="#FF9800" />
+                                <Text style={styles.adTitle}>Load Failed</Text>
+                                <Text style={[styles.adSubtitle, { color: '#E67E22' }]}>{loadError}</Text>
+                            </View>
+                        ) : !adLoaded && !adWatched ? (
                             <View style={styles.adLoading}>
                                 <ActivityIndicator size="large" color="#6C5CE7" />
                                 <Text style={styles.adLoadingText}>Preparing Secure Ad Gate...</Text>
                             </View>
                         ) : (
                             <View style={styles.adContent}>
-                                <MaterialCommunityIcons name="play-circle" size={80} color="#6C5CE7" />
-                                <Text style={styles.adTitle}>Ready to Unlock</Text>
+                                <MaterialCommunityIcons
+                                    name={adWatched ? "check-circle" : "play-circle"}
+                                    size={80}
+                                    color={adWatched ? "#10B981" : "#6C5CE7"}
+                                />
+                                <Text style={styles.adTitle}>
+                                    {adWatched ? 'Ad Completed' : 'Ready to Unlock'}
+                                </Text>
                                 <Text style={styles.adSubtitle}>
-                                    Watch ad to reveal contact details
+                                    {adWatched ? 'You can now view the contact.' : 'Watch ad to reveal contact details'}
                                 </Text>
                             </View>
                         )}
                     </View>
 
                     {/* Action Button */}
-                    <TouchableOpacity
-                        style={[styles.continueBtn, !adLoaded && styles.continueBtnDisabled]}
-                        onPress={handleShowAd}
-                        disabled={!adLoaded || isShowing}
-                    >
-                        <Text style={styles.continueBtnText}>
-                            {adLoaded ? 'Watch Ad to Reveal' : 'Loading Ad...'}
-                        </Text>
-                    </TouchableOpacity>
+                    {!adWatched ? (
+                        <TouchableOpacity
+                            style={[
+                                styles.continueBtn,
+                                (!adLoaded && !loadError) && styles.continueBtnDisabled,
+                                loadError && { backgroundColor: '#FFBDC3' }
+                            ]}
+                            onPress={handleShowAd}
+                            disabled={(!adLoaded && !loadError) || isShowing}
+                        >
+                            <Text style={styles.continueBtnText}>
+                                {adLoaded ? 'Watch Ad to Reveal' : loadError ? 'Retry Loading Ad' : 'Loading Ad...'}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.continueBtn}
+                            onPress={handleContinue}
+                        >
+                            <Text style={styles.continueBtnText}>Continue to Contact</Text>
+                        </TouchableOpacity>
+                    )}
 
                     {/* Footer */}
                     <Text style={styles.footerText}>
@@ -254,6 +330,8 @@ const styles = StyleSheet.create({
     adSubtitle: {
         fontSize: 14,
         color: '#636E72',
+        textAlign: 'center',
+        paddingHorizontal: 20,
     },
     continueBtn: {
         backgroundColor: '#6C5CE7',

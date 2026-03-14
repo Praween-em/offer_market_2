@@ -10,9 +10,10 @@ import {
     RefreshControl,
     Image,
 } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { AD_IDS } from '../utils/adConfig';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { getServiceIcon } from '../utils/serviceIcons';
@@ -194,7 +195,7 @@ const HomeScreen = ({ navigation }: any) => {
                 {/* Banner Ad */}
                 <View style={styles.adContainer}>
                     <BannerAd
-                        unitId={__DEV__ ? TestIds.BANNER : 'ca-app-pub-5362340568713961/6437577804'}
+                        unitId={AD_IDS.BANNER_HOME}
                         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
                         requestOptions={{
                             requestNonPersonalizedAdsOnly: true,
@@ -206,7 +207,7 @@ const HomeScreen = ({ navigation }: any) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>{t('recentRequests')}</Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('ServiceRequests')}>
                             <Text style={styles.seeAllText}>{t('seeAll')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '800',
-        color: COLORS.primary,
+        color: 'black',
         marginBottom: 16,
     },
     seeAllText: {

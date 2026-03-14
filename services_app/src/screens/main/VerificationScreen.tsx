@@ -22,8 +22,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import SelfieCameraModal from '../../components/SelfieCameraModal';
 
-const VerificationScreen = ({ navigation }: any) => {
-    const { updateUser } = useAuth();
+const VerificationScreen = ({ navigation, route }: any) => {
+    const { updateUser, user } = useAuth();
+    // Falls back to route param so the screen works immediately after onboarding
+    // (before the auth context has been refreshed from the server)
+    const isBusiness =
+        user?.provider?.provider_type === 'business' ||
+        route?.params?.providerType === 'business';
+    console.log(user?.provider?.provider_type);
     const [loading, setLoading] = useState(false);
 
     // Form State
@@ -262,24 +268,41 @@ const VerificationScreen = ({ navigation }: any) => {
                         />
                     </View>
 
-                    {/* Step 3: Selfie */}
+                    {/* Step 3: Shop Front (business) or Selfie (individual) */}
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>3. Take a Selfie</Text>
-                        <Text style={styles.subLabel}>This will be used as your profile picture.</Text>
+                        <Text style={styles.label}>
+                            {isBusiness ? '3. Shop Front Photo' : '3. Take a Selfie'}
+                        </Text>
+                        <Text style={styles.subLabel}>
+                            {isBusiness
+                                ? 'Capture a clear photo of the front of your shop/business.'
+                                : 'This will be used as your profile picture.'}
+                        </Text>
 
                         {!selfieUri ? (
                             <TouchableOpacity style={styles.uploadBox} onPress={() => setShowCamera(true)}>
-                                <Icon name="camera" size={32} color={COLORS.primary} />
-                                <Text style={styles.uploadText}>Tap to take selfie</Text>
+                                <Icon
+                                    name={isBusiness ? 'home' : 'camera'}
+                                    size={32}
+                                    color={COLORS.primary}
+                                />
+                                <Text style={styles.uploadText}>
+                                    {isBusiness ? 'Tap to capture shop front' : 'Tap to take selfie'}
+                                </Text>
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.selfiePreviewContainer}>
-                                <Image source={{ uri: selfieUri }} style={styles.selfiePreview} />
+                                <Image
+                                    source={{ uri: selfieUri }}
+                                    style={isBusiness ? styles.shopPreview : styles.selfiePreview}
+                                />
                                 <TouchableOpacity
                                     style={styles.retakeButton}
                                     onPress={() => setShowCamera(true)}
                                 >
-                                    <Text style={styles.retakeText}>Retake</Text>
+                                    <Text style={styles.retakeText}>
+                                        {isBusiness ? 'Retake Photo' : 'Retake'}
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -290,13 +313,13 @@ const VerificationScreen = ({ navigation }: any) => {
                         <Text style={styles.label}>4. Legal Terms & Liability</Text>
                         <Text style={styles.subLabel}>Please read and accept the terms below to proceed.</Text>
 
-                        <View style={styles.termsBox}>
+                        <ScrollView style={styles.termsBox} nestedScrollEnabled={true}>
                             {loadingTerms ? (
                                 <ActivityIndicator color={COLORS.primary} style={{ margin: SPACING.xl }} />
                             ) : (
                                 <Text style={styles.termsText}>{legalTerms}</Text>
                             )}
-                        </View>
+                        </ScrollView>
 
                         <TouchableOpacity
                             style={styles.checkboxRow}
@@ -338,8 +361,9 @@ const VerificationScreen = ({ navigation }: any) => {
                 onClose={() => setShowCamera(false)}
                 onCapture={(uri) => {
                     setSelfieUri(uri);
-                    // setShowCamera(false); // Handled inside component or here
                 }}
+                cameraType={isBusiness ? 'back' : 'front'}
+                title={isBusiness ? 'Shop Front Photo' : undefined}
             />
         </SafeAreaView>
     );
@@ -498,6 +522,14 @@ const styles = StyleSheet.create({
         borderRadius: 75,
         borderWidth: 4,
         borderColor: COLORS.success,
+    },
+    shopPreview: {
+        width: '100%',
+        height: 180,
+        borderRadius: 12,
+        borderWidth: 3,
+        borderColor: COLORS.success,
+        resizeMode: 'cover',
     },
     retakeButton: {
         paddingVertical: 8,

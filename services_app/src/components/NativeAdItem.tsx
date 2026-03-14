@@ -10,9 +10,10 @@ import {
 } from 'react-native-google-mobile-ads';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
+import { AD_IDS } from '../utils/adConfig';
 
 // WARNING: Using production Ad Unit IDs during development can lead to account suspension.
-const NATIVE_AD_UNIT_ID = 'ca-app-pub-5362340568713961/6437577804';
+const NATIVE_AD_UNIT_ID = AD_IDS.NATIVE;
 
 const NativeAdItem = () => {
     const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);

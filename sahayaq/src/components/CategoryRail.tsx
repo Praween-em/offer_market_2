@@ -177,13 +177,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: '900',
-        color: COLORS.primary,
+        color: 'black',
         letterSpacing: -0.5,
     },
     viewAllText: {
         fontSize: 13,
         fontWeight: '700',
-        color: COLORS.primary,
+        color: 'black',
         letterSpacing: 0.5,
     },
     listContent: {

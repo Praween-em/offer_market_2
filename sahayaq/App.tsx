@@ -17,7 +17,6 @@ import LanguageSettingsScreen from './src/screens/LanguageSettingsScreen';
 import LocationSettingsScreen from './src/screens/LocationSettingsScreen';
 import NotificationScreen from './src/screens/NotificationScreen';
 import PrivacySecurityScreen from './src/screens/PrivacySecurityScreen';
-import SplashScreen from './src/screens/SplashScreen';
 import HelpSupportScreen from './src/screens/HelpSupportScreen';
 import AboutAppScreen from './src/screens/AboutAppScreen';
 import TermsConditionsScreen from './src/screens/TermsConditionsScreen';
@@ -34,18 +33,16 @@ const AuthStack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   const { token, isLoading } = useAuth();
-  const [showSplash, setShowSplash] = React.useState(true);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 3000); // 3 seconds
-
-    return () => clearTimeout(timer);
+    // Other initializations if any
   }, []);
 
-  if (isLoading || showSplash) {
-    return <SplashScreen />;
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
 
   return (

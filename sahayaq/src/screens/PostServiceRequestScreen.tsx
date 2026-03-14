@@ -39,6 +39,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showConsent, setShowConsent] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
     const [editMode, setEditMode] = useState(!!route.params?.request);
     const [requestId, setRequestId] = useState<string | null>(route.params?.request?.id || null);
     const { user } = useAuth();
@@ -228,7 +229,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
 
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Photos ({images.length}/2)</Text>
+                        <Text style={styles.label}>Photos ({images.length}/2) (Optional) </Text>
                         <View style={styles.imageGrid}>
                             {images.map((img, index) => (
                                 <View key={index} style={styles.imageWrapper}>
@@ -261,7 +262,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Select Category</Text>
+                        <Text style={styles.label}>Select Service *</Text>
                         <TouchableOpacity
                             style={styles.categoryTrigger}
                             onPress={() => setShowCategoryModal(true)}
@@ -269,7 +270,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
                             <View style={styles.categoryTriggerContent}>
                                 <Icon name="tag-outline" size={20} color="#FF4757" style={{ marginRight: 10 }} />
                                 <Text style={styles.categorySelectedText}>
-                                    {selectedParent ? `${selectedParent.name}${selectedSub ? ` > ${selectedSub.name}` : ''}` : 'Select Category'}
+                                    {selectedParent ? `${selectedParent.name}${selectedSub ? ` > ${selectedSub.name}` : ''}` : 'Select Service'}
                                 </Text>
                             </View>
                             <Icon name="chevron-right" size={20} color="#999" />
@@ -277,7 +278,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Describe your Problem / Service needed</Text>
+                        <Text style={styles.label}>Describe your Problem / Service needed *</Text>
                         <TextInput
                             style={styles.input}
                             value={title}
@@ -339,31 +340,67 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
                     </View>
                 </View>
 
-                {/* Legal Terms Checkbox */}
-                <View style={[styles.inputGroup, { marginTop: 10 }]}>
-                    <Text style={styles.label}>Legal Terms & Liability</Text>
-
-                    <View style={styles.termsBox}>
-                        {loadingTerms ? (
-                            <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} />
-                        ) : (
-                            <Text style={styles.termsText}>{legalTerms}</Text>
-                        )}
+                {/* Legal Terms Checkbox — compact */}
+                <View style={styles.termsCompactCard}>
+                    <View style={styles.termsCompactTop}>
+                        <View style={styles.termsIconWrap}>
+                            <Icon name="shield-check-outline" size={18} color="#4C51BF" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.termsCompactTitle}>Terms & Liability</Text>
+                            <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.7}>
+                                <Text style={styles.termsViewLink}>
+                                    {loadingTerms ? 'Loading terms…' : 'View full terms & conditions'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <TouchableOpacity
-                        style={styles.checkboxRow}
+                        style={styles.termsCheckRow}
                         onPress={() => setAcceptedTerms(!acceptedTerms)}
                         activeOpacity={0.7}
                     >
                         <View style={[styles.checkbox, acceptedTerms && styles.checkboxSelected]}>
-                            {acceptedTerms && <Icon name="check" size={14} color="#FFF" />}
+                            {acceptedTerms && <Icon name="check" size={13} color="#FFF" />}
                         </View>
-                        <Text style={styles.checkboxLabel}>
-                            I have read, understood, and accept the Sahayaq Legal Terms and Liability Disclaimers.
+                        <Text style={styles.termsCheckLabel}>
+                            I agree to the Sahayaq Terms & Liability Disclaimers
                         </Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Full Terms Modal */}
+                <Modal
+                    visible={showTermsModal}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowTermsModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.bottomSheet, { maxHeight: '75%' }]}>
+                            <View style={styles.sheetHeader}>
+                                <Text style={styles.sheetTitle}>Legal Terms & Liability</Text>
+                                <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+                                    <Icon name="close" size={24} color="#666" />
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView style={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+                                {loadingTerms ? (
+                                    <ActivityIndicator color={COLORS.primary} style={{ margin: 40 }} />
+                                ) : (
+                                    <Text style={styles.termsText}>{legalTerms}</Text>
+                                )}
+                            </ScrollView>
+                            <TouchableOpacity
+                                style={styles.termsCloseBtn}
+                                onPress={() => { setAcceptedTerms(true); setShowTermsModal(false); }}
+                            >
+                                <Text style={styles.termsCloseBtnText}>I Understand & Accept</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
 
                 <TouchableOpacity
                     style={[styles.submitBtn, (submitting || !acceptedTerms) && styles.submitBtnDisabled]}
@@ -701,45 +738,91 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '800',
     },
-    termsBox: {
-        backgroundColor: '#F8F9FA',
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
-        borderRadius: 12,
-        height: 150,
-        padding: 16,
-        marginBottom: 12,
-    },
     termsText: {
         fontSize: 13,
         color: '#636E72',
-        lineHeight: 18,
+        lineHeight: 20,
+        paddingBottom: 20,
     },
-    checkboxRow: {
+    /* Compact terms card */
+    termsCompactCard: {
+        backgroundColor: '#F0F1FF',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#D6D8FF',
+        padding: 14,
+        marginTop: 4,
+        marginBottom: 16,
+        gap: 12,
+    },
+    termsCompactTop: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        paddingRight: 20,
+        gap: 10,
     },
+    termsIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#E0E1FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    termsCompactTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#2D3436',
+        marginBottom: 2,
+    },
+    termsViewLink: {
+        fontSize: 12,
+        color: '#4C51BF',
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+    termsCheckRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingTop: 4,
+        borderTopWidth: 1,
+        borderTopColor: '#D6D8FF',
+    },
+    termsCheckLabel: {
+        fontSize: 12,
+        color: '#4B5563',
+        flex: 1,
+        lineHeight: 17,
+        fontWeight: '500',
+    },
+    termsCloseBtn: {
+        backgroundColor: '#4C51BF',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    termsCloseBtnText: {
+        color: '#FFF',
+        fontSize: 15,
+        fontWeight: '800',
+    },
+    /* Shared checkbox */
     checkbox: {
-        width: 24,
-        height: 24,
-        borderRadius: 6,
+        width: 20,
+        height: 20,
+        borderRadius: 5,
         borderWidth: 2,
-        borderColor: '#999',
+        borderColor: '#4C51BF',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFF',
+        flexShrink: 0,
     },
     checkboxSelected: {
         backgroundColor: '#4C51BF',
         borderColor: '#4C51BF',
-    },
-    checkboxLabel: {
-        fontSize: 14,
-        color: '#2D3436',
-        flex: 1,
-        lineHeight: 20,
     },
     modalOverlay: {
         flex: 1,

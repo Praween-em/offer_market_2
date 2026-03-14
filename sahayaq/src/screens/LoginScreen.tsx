@@ -116,7 +116,7 @@ const LoginScreen = ({ navigation }: any) => {
                                 style={styles.titleImage}
                                 resizeMode="contain"
                             />
-                            <Text style={styles.cardSubtitle}>secured • verified • local</Text>
+                            <Text style={styles.cardSubtitle}>Search • POST • CONNECT</Text>
 
                             <Text style={styles.label}>{t('phone_number') || 'Phone Number'}</Text>
                             <View style={styles.inputWrapper}>

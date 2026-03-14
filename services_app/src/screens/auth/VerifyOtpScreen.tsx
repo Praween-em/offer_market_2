@@ -158,7 +158,7 @@ const VerifyOtpScreen = ({ navigation, route }: any) => {
                 <Animated.View style={[styles.cardContainer, { transform: [{ translateY: cardSlideAnim }] }]}>
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>Verification</Text>
-                        <Text style={styles.cardSubtitle}>secured • verified • local</Text>
+                        <Text style={styles.cardSubtitle}>Find • Connect • Earn</Text>
 
                         <Text style={styles.infoText}>
                             Enter the 6-digit code sent to

@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { AD_IDS } from '../utils/adConfig';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -30,8 +31,15 @@ const ServiceRequestsScreen = ({ navigation }: any) => {
     const fetchRequests = async () => {
         try {
             const response = await api.get('/services/my-requests');
-            console.log('My requests response:', JSON.stringify(response.data?.slice(0, 1), null, 2));
-            setRequests(response.data || []);
+            const rawRequests = response.data || [];
+            const requestsWithAds: any[] = [];
+            rawRequests.forEach((req: any, index: number) => {
+                requestsWithAds.push(req);
+                if ((index + 1) % 3 === 0) {
+                    requestsWithAds.push({ id: `ad-${index}`, isAd: true });
+                }
+            });
+            setRequests(requestsWithAds);
         } catch (error) {
             console.error('Failed to fetch requests:', error);
         } finally {
@@ -76,6 +84,21 @@ const ServiceRequestsScreen = ({ navigation }: any) => {
     };
 
     const renderRequestItem = ({ item }: { item: any }) => {
+        if (item.isAd) {
+            return (
+                <View style={styles.inlineAdContainer}>
+                    <BannerAd
+                        unitId={AD_IDS.BANNER_MY_REQUESTS}
+                        size={BannerAdSize.LARGE_BANNER}
+                        requestOptions={{
+                            requestNonPersonalizedAdsOnly: true,
+                        }}
+                    />
+                    <Text style={styles.adTag}>Sponsored Result</Text>
+                </View>
+            );
+        }
+
         const statusStyle = getStatusStyle(item.status);
         const hasImages = item.media && item.media.length > 0;
         const hasNewActivity = item.has_new_activity || false;
@@ -188,7 +211,7 @@ const ServiceRequestsScreen = ({ navigation }: any) => {
 
             <View style={styles.bannerContainer}>
                 <BannerAd
-                    unitId={__DEV__ ? TestIds.BANNER : 'ca-app-pub-5362340568713961/6437577804'}
+                    unitId={AD_IDS.BANNER_MY_REQUESTS}
                     size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
                 />
             </View>
@@ -451,6 +474,24 @@ const styles = StyleSheet.create({
         fontSize: 9,
         fontWeight: '800',
         color: '#636E72',
+    },
+    inlineAdContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 12,
+        paddingVertical: 16,
+        backgroundColor: '#FFF',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#F1F2F6',
+        overflow: 'hidden',
+    },
+    adTag: {
+        fontSize: 10,
+        color: '#B2BEC3',
+        fontWeight: '700',
+        marginTop: 8,
+        textTransform: 'uppercase',
     },
 });
 

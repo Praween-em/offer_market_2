@@ -61,7 +61,7 @@ const AboutAppScreen = ({ navigation }: any) => {
                     <FeatureItem
                         icon="shield-check-outline"
                         title="Verified Professionals"
-                        text="Every provider goes through a background check and Aadhaar verification."
+                        text="All Verified Professionals are verified with Aadhaar Offline XML."
                     />
                     <FeatureItem
                         icon="timer-outline"
@@ -77,7 +77,7 @@ const AboutAppScreen = ({ navigation }: any) => {
 
                 <View style={styles.footer}>
                     <Text style={styles.madeIn}>Made with ❤️ in India</Text>
-                    <Text style={styles.copyright}>© 2026 Sahayaq Tech Solutions Private Limited</Text>
+                    <Text style={styles.copyright}>© 2025 Ride Andhra Tech Solutions</Text>
                 </View>
             </ScrollView>
         </View>

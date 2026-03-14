@@ -48,6 +48,7 @@ export const translations = {
         cancel: 'Cancel',
         save: 'Save',
         version: 'Version',
+        setYourName: 'Set your name',
         // New Settings Screens
         selectLanguage: 'Select Language',
         english: 'English',
@@ -305,6 +306,7 @@ export const translations = {
         cancel: 'రద్దు చేయండి',
         save: 'సేవ్ చేయండి',
         version: 'వెర్షన్',
+        setYourName: 'మీ పేరు సెట్ చేయండి',
         // New Settings Screens
         selectLanguage: 'భాషను ఎంచుకోండి',
         english: 'ఇంగ్లీష్',

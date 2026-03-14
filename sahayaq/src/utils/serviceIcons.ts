@@ -103,6 +103,20 @@ export const SERVICE_CATEGORY_IMAGES: { [key: string]: any } = {
     'Car': require('../assets/car_vehicle.png'),
     'Home Chef': require('../assets/food_kitchen.png'),
     'Tiffin Services': require('../assets/food_kitchen.png'),
+    'Band Baaja Baarat': require('../assets/band_baaja_baarat.png'),
+    'Flower & Varmala Decorators': require('../assets/flowerDecor.png'),
+    'Sound, Light and DJ': require('../assets/sound&light.png'),
+    'DJ': require('../assets/sound&light.png'),
+    'Tent & Pandal': require('../assets/Tent&Pandal.png'),
+    'Road Roller': require('../assets/road_roller.png'),
+    'Astrology': require('../assets/astrology_firm.png'),
+    'Astrolgy': require('../assets/astrology_firm.png'),
+    'Vastu Firms': require('../assets/Interior_design.png'),
+    'Interior Design': require('../assets/Interior_design.png'),
+    'Pandit & Puja': require('../assets/pandit&puja.png'),
+    'Security & Maintainance': require('../assets/homeMaintainance.png'),
+    'Security & Maintenance': require('../assets/homeMaintainance.png'),
+    'Security & Society': require('../assets/security and society.png'),
 };
 
 export const getServiceIcon = (name: string) => {

@@ -85,10 +85,9 @@ const ProfileScreen = ({ navigation }: any) => {
             >
                 {/* Profile Card */}
                 <View style={styles.profileCard}>
-                    <Image
-                        source={{ uri: user?.profile_picture || 'https://via.placeholder.com/100' }}
-                        style={styles.avatar}
-                    />
+                    <View style={styles.avatarPlaceholder}>
+                        <MaterialCommunityIcons name="account" size={60} color="#B2BEC3" />
+                    </View>
                     <TouchableOpacity onPress={() => !user?.display_name && navigation.navigate('EditProfile')}>
                         <Text style={[styles.displayName, !user?.display_name && { color: '#4C51BF', textDecorationLine: 'underline' }]}>
                             {user?.display_name || t('setYourName') || 'Set your name'}
@@ -108,7 +107,6 @@ const ProfileScreen = ({ navigation }: any) => {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('myActivity')}</Text>
                     {renderMenuItem('clipboard-text-outline', t('myServiceRequests'), () => navigation.navigate('ServiceRequests'), '#4C51BF')}
-                    {renderMenuItem('history', t('requestHistory'), () => { }, '#4C51BF')}
                 </View>
 
                 <View style={styles.section}>
@@ -170,12 +168,14 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
     },
-    avatar: {
+    avatarPlaceholder: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#F8F9FA',
+        backgroundColor: '#F1F2F6',
         marginBottom: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     displayName: {
         fontSize: 22,

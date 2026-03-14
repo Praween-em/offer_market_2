@@ -8,8 +8,10 @@ import NotificationSideSheet from '../../components/NotificationSideSheet';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useNotifications } from '../../context/NotificationContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { AD_IDS } from '../../utils/adConfig';
+import NativeAdItem from '../../components/NativeAdItem';
 
-const BANNER_AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-5362340568713961/6437577804';
+const BANNER_AD_UNIT_ID = AD_IDS.BANNER_HOME;
 
 const DashboardScreen = () => {
     const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -114,6 +116,11 @@ const DashboardScreen = () => {
                             </Text>
                         </View>
                     </View>
+                </View>
+
+                {/* Native Ad Space */}
+                <View style={styles.nativeAdContainer}>
+                    <NativeAdItem />
                 </View>
 
                 {/* Banner Ad at bottom */}
@@ -252,8 +259,11 @@ const styles = StyleSheet.create({
     },
     bannerContainer: {
         alignItems: 'center',
-        marginTop: SPACING.xxl,
+        marginTop: SPACING.xl,
         paddingBottom: SPACING.xl,
+    },
+    nativeAdContainer: {
+        marginTop: SPACING.xl,
     },
 });
 

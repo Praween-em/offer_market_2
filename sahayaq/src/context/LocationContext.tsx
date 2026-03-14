@@ -71,30 +71,34 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     const checkLocationPermissionOnLoad = async () => {
-        try {
-            const hasAsked = await AsyncStorage.getItem('hasAskedLocationPermission');
-            if (!hasAsked) {
-                // First time launching or after clearing data
-                await AsyncStorage.setItem('hasAskedLocationPermission', 'true');
-                const hasPermission = await requestPermission();
-                if (hasPermission) {
-                    await detectLocation();
-                }
-            } else {
-                // If they already gave permission previously, silently fetch location
-                if (Platform.OS === 'android') {
-                    const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-                    if (granted) {
-                        detectLocation();
+        // Adding a small delay to ensure the Activity is attached, 
+        // especially now that the splash screen is removed.
+        setTimeout(async () => {
+            try {
+                const hasAsked = await AsyncStorage.getItem('hasAskedLocationPermission');
+                if (!hasAsked) {
+                    // First time launching or after clearing data
+                    await AsyncStorage.setItem('hasAskedLocationPermission', 'true');
+                    const hasPermission = await requestPermission();
+                    if (hasPermission) {
+                        await detectLocation();
                     }
                 } else {
-                    // On iOS we can just call it, it will silently fail if denied
-                    detectLocation();
+                    // If they already gave permission previously, silently fetch location
+                    if (Platform.OS === 'android') {
+                        const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+                        if (granted) {
+                            detectLocation();
+                        }
+                    } else {
+                        // On iOS we can just call it, it will silently fail if denied
+                        detectLocation();
+                    }
                 }
+            } catch (error) {
+                console.error('Error checking location permission flag:', error);
             }
-        } catch (error) {
-            console.error('Error checking location permission flag:', error);
-        }
+        }, 1000);
     };
 
     const detectLocation = async (): Promise<{ lat: number, lng: number } | null> => {

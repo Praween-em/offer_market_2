@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { AD_IDS } from '../utils/adConfig';
 import api from '../services/api';
 import { getServiceIcon } from '../utils/serviceIcons';
 import VerificationBadge from '../components/VerificationBadge';
@@ -364,7 +365,7 @@ const ServicesSearchScreen = ({ navigation, route }: any) => {
                             return (
                                 <View style={styles.inlineAdContainer}>
                                     <BannerAd
-                                        unitId={__DEV__ ? TestIds.BANNER : 'ca-app-pub-5362340568713961/6437577804'}
+                                        unitId={AD_IDS.BANNER_HOME}
                                         size={BannerAdSize.LARGE_BANNER}
                                         requestOptions={{
                                             requestNonPersonalizedAdsOnly: true,

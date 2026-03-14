@@ -58,23 +58,23 @@ const HelpSupportScreen = ({ navigation }: any) => {
                     <ContactItem
                         icon="whatsapp"
                         title="WhatsApp Support"
-                        subtitle="+91 98765 43210"
+                        subtitle="+91 8374277617"
                         color="#25D366"
-                        onPress={() => Linking.openURL('whatsapp://send?phone=919876543210')}
+                        onPress={() => Linking.openURL('whatsapp://send?phone=+918374277617')}
                     />
                     <ContactItem
                         icon="email-outline"
                         title="Email Us"
-                        subtitle="support@sahayaq.com"
+                        subtitle="help.rideandhra@gmail.com"
                         color="#FF4757"
-                        onPress={() => Linking.openURL('mailto:support@sahayaq.com')}
+                        onPress={() => Linking.openURL('mailto:help.rideandhra@gmail.com')}
                     />
                     <ContactItem
                         icon="phone-outline"
                         title="Call Support"
-                        subtitle="Toll Free: 1800 123 4567"
+                        subtitle="+91 8374277617"
                         color="#2196F3"
-                        onPress={() => Linking.openURL('tel:18001234567')}
+                        onPress={() => Linking.openURL('tel:+918374277617')}
                     />
                 </View>
 

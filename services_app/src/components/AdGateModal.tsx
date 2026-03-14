@@ -15,6 +15,7 @@ import {
     TestIds,
     AdEventType,
 } from 'react-native-google-mobile-ads';
+import { AD_IDS } from '../utils/adConfig';
 
 interface AdGateModalProps {
     visible: boolean;
@@ -25,7 +26,7 @@ interface AdGateModalProps {
 
 // WARNING: Using production Ad Unit IDs during development can lead to account suspension.
 // Recommend registering test devices in the AdMob console.
-const REWARDED_AD_UNIT_ID = 'ca-app-pub-5362340568713961/5188075314';
+const REWARDED_AD_UNIT_ID = AD_IDS.REWARDED;
 
 const AdGateModal: React.FC<AdGateModalProps> = ({
     visible,
@@ -164,7 +165,7 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
                     {/* Header */}
                     <View style={styles.header}>
                         <MaterialCommunityIcons name="handshake-outline" size={24} color="#4F46E5" />
-                        <Text style={styles.headerTitle}>Unlock Contact Details</Text>
+                        <Text style={styles.headerTitle}>Unlock Contact Details Free</Text>
                         {!isShowing && (
                             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                                 <MaterialCommunityIcons name="close" size={24} color="#636E72" />
@@ -225,7 +226,7 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
                             disabled={(!adLoaded && !loadError) || isShowing}
                         >
                             <Text style={styles.continueBtnText}>
-                                {adLoaded ? 'Watch Ad to Unlock' : loadError ? 'Retry Loading Ad' : 'Preparing Ad...'}
+                                {adLoaded ? 'Watch Ad to Unlock (Free)' : loadError ? 'Retry Loading Ad' : 'Preparing Ad...'}
                             </Text>
                         </TouchableOpacity>
                     ) : (

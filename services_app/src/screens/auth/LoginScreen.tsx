@@ -110,8 +110,12 @@ const LoginScreen = ({ navigation }: any) => {
                     {/* Login Card */}
                     <Animated.View style={[styles.cardContainer, { transform: [{ translateY: cardSlideAnim }] }]}>
                         <View style={styles.card}>
-                            <Text style={styles.cardTitle}>sahayaq</Text>
-                            <Text style={styles.cardSubtitle}>secured • verified • local</Text>
+                            <Image
+                                source={require('../../assets/login_screen_title.png')}
+                                style={styles.cardTitleImage}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.cardSubtitle}>Find • Connect • Earn</Text>
 
                             <Text style={styles.label}>Phone Number</Text>
                             <View style={styles.inputWrapper}>
@@ -237,14 +241,13 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    cardTitle: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: '#1A237E', // Slightly darker theme color
+    cardTitleImage: {
+        width: 260,
+        height: 60,
         marginBottom: 6,
     },
     cardSubtitle: {
-        fontSize: 13,
+        fontSize: 10,
         color: '#3F51B5',
         fontWeight: '800',
         marginBottom: 32,
