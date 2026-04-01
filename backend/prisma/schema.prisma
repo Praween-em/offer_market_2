@@ -556,9 +556,10 @@ model service_categories {
   keywords                 String?
   parent                   service_categories?  @relation("service_categoriesToservice_categories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sub_categories           service_categories[] @relation("service_categoriesToservice_categories")
-  service_providers        service_providers[]
-  service_requests         service_requests[]
-  services                 services[]
+  service_providers                service_providers[]
+  service_requests                 service_requests[]
+  services                         services[]
+  provider_selected_categories     provider_selected_categories[]
 }
 
 model service_images {
@@ -638,19 +639,33 @@ model service_providers {
   latitude                 Decimal?                   @db.Decimal(9, 6)
   longitude                Decimal?                   @db.Decimal(9, 6)
   location_name            String?                    @db.VarChar(255)
-  provider_unlocks         provider_unlocks[]
-  service_leads            service_leads[]
-  service_portfolios       service_portfolios[]
-  service_provider_reports service_provider_reports[]
-  service_categories       service_categories         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                    users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_reviews          service_reviews[]
-  services                 services[]
+  provider_unlocks             provider_unlocks[]
+  service_leads                service_leads[]
+  service_portfolios           service_portfolios[]
+  service_provider_reports     service_provider_reports[]
+  service_categories           service_categories           @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                        users                        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_reviews              service_reviews[]
+  services                     services[]
+  provider_selected_categories provider_selected_categories[]
 
   @@index([average_rating])
   @@index([category_id])
   @@index([is_active])
   @@index([latitude, longitude])
+}
+
+model provider_selected_categories {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id        String             @db.Uuid
+  category_id        String             @db.Uuid
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+
+  service_providers  service_providers  @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+  service_categories service_categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider_id, category_id])
+  @@index([provider_id])
 }
 
 model service_request_media {

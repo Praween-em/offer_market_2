@@ -59,6 +59,24 @@ export class ServicesController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get('selected-categories')
+    async getSelectedCategories(@Req() req) {
+        const provider = await this.servicesService.findProviderByUserId(req.user.userId);
+        if (!provider) throw new BadRequestException('Provider profile not found');
+        return this.servicesService.getSelectedCategories(provider.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('selected-categories')
+    async saveSelectedCategories(@Req() req, @Body('categoryIds') categoryIds: string[]) {
+        if (!Array.isArray(categoryIds)) throw new BadRequestException('categoryIds must be an array');
+        const provider = await this.servicesService.findProviderByUserId(req.user.userId);
+        if (!provider) throw new BadRequestException('Provider profile not found');
+        await this.servicesService.saveSelectedCategories(provider.id, categoryIds);
+        return { success: true };
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('my-profile')
     async getMyProviderProfile(@Req() req) {
         // First find the provider record for this user

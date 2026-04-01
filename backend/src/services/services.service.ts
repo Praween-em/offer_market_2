@@ -595,11 +595,32 @@ export class ServicesService {
         return this.convertBigIntToNumber(requestsWithActivity);
     }
 
+    async getSelectedCategories(providerId: string): Promise<string[]> {
+        const rows = await (this.prisma as any).provider_selected_categories.findMany({
+            where: { provider_id: providerId },
+            select: { category_id: true },
+        });
+        return rows.map((r: any) => r.category_id);
+    }
+
+    async saveSelectedCategories(providerId: string, categoryIds: string[]): Promise<void> {
+        await (this.prisma as any).provider_selected_categories.deleteMany({
+            where: { provider_id: providerId },
+        });
+        if (categoryIds.length > 0) {
+            await (this.prisma as any).provider_selected_categories.createMany({
+                data: categoryIds.map(cid => ({ provider_id: providerId, category_id: cid })),
+                skipDuplicates: true,
+            });
+        }
+    }
+
     async findProviderFeed(userId: string, lat?: number, lng?: number) {
         // 1. Get the provider's category and location
         const provider: any = await this.prisma.service_providers.findUnique({
             where: { user_id: userId },
             select: {
+                id: true,
                 category_id: true,
                 latitude: true,
                 longitude: true
@@ -625,7 +646,7 @@ export class ServicesService {
 
         if (!providerCategory) return [];
 
-        // 3. Determine the category family to match
+        // 3. Determine the category family to match (primary category)
         let categoryIds: string[] = [];
 
         if (providerCategory.parent_id) {
@@ -649,6 +670,36 @@ export class ServicesService {
                 select: { id: true }
             });
             categoryIds = [providerCategory.id, ...children.map(c => c.id)];
+        }
+
+        // 3b. Expand with any extra categories the provider has opted into
+        const selectedCategoryIds = await this.getSelectedCategories(provider.id);
+        for (const scId of selectedCategoryIds) {
+            if (categoryIds.includes(scId)) continue;
+            const sc = await this.prisma.service_categories.findUnique({
+                where: { id: scId },
+                select: { id: true, parent_id: true }
+            });
+            if (!sc) continue;
+            if (sc.parent_id) {
+                const extra = await this.prisma.service_categories.findMany({
+                    where: {
+                        OR: [
+                            { id: sc.parent_id },
+                            { parent_id: sc.parent_id }
+                        ]
+                    },
+                    select: { id: true }
+                });
+                extra.forEach(e => { if (!categoryIds.includes(e.id)) categoryIds.push(e.id); });
+            } else {
+                if (!categoryIds.includes(sc.id)) categoryIds.push(sc.id);
+                const children = await this.prisma.service_categories.findMany({
+                    where: { parent_id: sc.id },
+                    select: { id: true }
+                });
+                children.forEach(c => { if (!categoryIds.includes(c.id)) categoryIds.push(c.id); });
+            }
         }
 
         // 4. Build keyword list for matching
