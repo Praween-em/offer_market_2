@@ -622,6 +622,7 @@ model service_providers {
   user_id                  String                     @unique @db.Uuid
   category_id              String                     @db.Uuid
   display_name             String                     @db.VarChar(255)
+  provider_type            String?                    @db.VarChar(32)
   bio                      String?
   experience_years         Int                        @default(0)
   starting_price           Decimal?                   @db.Decimal(12, 2)

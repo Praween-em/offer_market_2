@@ -160,7 +160,7 @@ export class AuthService {
                         whatsapp_number: data.whatsappNumber,
                         phone_number: data.phoneNumber || user.phone,
                         is_active: true,
-                    } as any,
+                    },
                     create: {
                         user_id: userId,
                         display_name: data.displayName,
@@ -175,7 +175,7 @@ export class AuthService {
                         whatsapp_number: data.whatsappNumber,
                         phone_number: data.phoneNumber || user.phone,
                         is_active: true,
-                    } as any,
+                    },
                 });
                 const userData = await this.getUserWithFlags(user);
                 console.log('[AuthService] Onboarding Success (Individual/Provider):', userData);
