@@ -365,7 +365,7 @@ const PostServiceRequestScreen = ({ navigation, route }: any) => {
                             {acceptedTerms && <Icon name="check" size={13} color="#FFF" />}
                         </View>
                         <Text style={styles.termsCheckLabel}>
-                            I agree to the Sahayaq Terms & Liability Disclaimers
+                            I agree to the My Sahayaq Terms & Liability Disclaimers
                         </Text>
                     </TouchableOpacity>
                 </View>

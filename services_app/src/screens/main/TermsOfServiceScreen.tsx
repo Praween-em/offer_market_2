@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -14,9 +15,9 @@ const TermsOfServiceScreen = ({ navigation }: any) => {
             </View>
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>1. Sahayaq as an Informational Intermediary</Text>
+                    <Text style={styles.sectionTitle}>1. My Sahayaq as an Informational Intermediary</Text>
                     <Text style={styles.bodyText}>
-                        Sahayaq is a marketplace intermediary that connects Service Providers with Users ("Service Seekers"). You acknowledge that Sahayaq does not provide services directly, is not an employer, and does not act as an agent for any Service Provider. We act strictly as a venue for informational exchange.
+                        My Sahayaq is a marketplace intermediary that connects Service Providers with Users ("Service Seekers"). You acknowledge that My Sahayaq does not provide services directly, is not an employer, and does not act as an agent for any Service Provider. We act strictly as a venue for informational exchange.
                     </Text>
                 </View>
 
@@ -56,7 +57,7 @@ const TermsOfServiceScreen = ({ navigation }: any) => {
                         Disclaimer of Physical & Financial Risks:
                     </Text>
                     <Text style={styles.bodyText}>
-                        Sahayaq assumes ZERO liability for:
+                        My Sahayaq assumes ZERO liability for:
                     </Text>
                     <View style={styles.bulletItem}>
                         <Icon name="alert-triangle" size={16} color={COLORS.error} />

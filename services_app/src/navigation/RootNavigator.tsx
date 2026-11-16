@@ -17,12 +17,6 @@ const Navigation = () => {
     // If not logged in OR if user is not a service provider, show Auth/Onboarding
     const showAuth = !isAuthenticated || !user?.is_service_provider;
 
-    console.log(`[RootNavigator] Auth Status:`, {
-        isAuthenticated,
-        isServiceProvider: user?.is_service_provider,
-        showAuth
-    });
-
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             {showAuth ? (

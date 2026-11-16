@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, RefreshControl, Image, ActivityIndicator, Linking, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, RefreshControl, Image, ActivityIndicator, Linking, TextInput, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import { useAuth } from '../../context/AuthContext';
@@ -30,25 +31,21 @@ const FeedScreen = ({ navigation }: any) => {
     const [showSearch, setShowSearch] = useState(false);
 
     const fetchFeed = async (lat?: number, lng?: number) => {
-        console.log('[FeedScreen] fetchFeed started with coords:', lat, lng);
         try {
             const url = lat && lng
                 ? `/services/provider-feed?lat=${lat}&lng=${lng}`
                 : '/services/provider-feed';
             const response = await api.get(url);
-            console.log('[FeedScreen] fetchFeed success:', response.data?.length, 'items');
             setRequests(response.data);
         } catch (error: any) {
             console.error('[FeedScreen] fetchFeed failed:', error.message);
         } finally {
-            console.log('[FeedScreen] fetchFeed finished, setting loading false');
             setLoading(false);
             setRefreshing(false);
         }
     };
 
     const detectLocation = async (): Promise<{ lat?: number, lng?: number } | null> => {
-        console.log('[FeedScreen] detectLocation started');
         setLocationStatus('detecting');
         try {
             const status = await LocationService.requestLocationPermission();
@@ -56,16 +53,11 @@ const FeedScreen = ({ navigation }: any) => {
                 const loc = await LocationService.getCurrentLocation();
                 if (loc) {
                     setLocationStatus('granted');
-                    console.log('[FeedScreen] Location detected:', loc.latitude, loc.longitude);
-
-                    // Use robust reverse geocoding from service
                     LocationService.reverseGeocode(loc.latitude, loc.longitude).then(address => {
                         setCurrentLocation(address);
                     });
-
                     return { lat: loc.latitude, lng: loc.longitude };
                 } else {
-                    console.log('[FeedScreen] Location fetch returned null');
                     setLocationStatus('denied');
                     setCurrentLocation('Turn on Location');
                 }
@@ -90,7 +82,7 @@ const FeedScreen = ({ navigation }: any) => {
         if (locationStatus === 'denied' || locationStatus === 'blocked') {
             Alert.alert(
                 'Location Access',
-                'Sahayaq needs your location to find nearby jobs and service requests for you. Would you like to allow access?',
+                'My Sahayaq needs your location to find nearby jobs and service requests for you. Would you like to allow access?',
                 [
                     { text: 'Later', style: 'cancel' },
                     { text: 'Allow', onPress: () => detectLocation() }
@@ -320,8 +312,7 @@ const FeedScreen = ({ navigation }: any) => {
                     <>
                         <View style={styles.headerLeft}>
                             <View style={styles.brandingRow}>
-                                <Text style={styles.brandName}>Sahayaq</Text>
-                                <Text style={{ fontSize: 22, fontWeight: 'bold', color: COLORS.secondary, marginLeft: 2 }}>+</Text>
+                                <Text style={styles.brandName}>My Sahayaq</Text>
                             </View>
                             <TouchableOpacity
                                 style={styles.locationHeader}

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     ScrollView,
     ActivityIndicator,
     Alert,
@@ -13,6 +12,7 @@ import {
     Animated,
     Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -140,14 +140,10 @@ const OnboardingScreen = ({ navigation }: any) => {
 
             // Update local user state (specifically the role) to trigger navigation switch
             if (response.data.user) {
-                console.log('[OnboardingScreen] Updating user data with:', response.data.user);
                 await updateUser(response.data.user);
-                console.log('[OnboardingScreen] User data updated in context');
             }
 
-            Alert.alert('Success', 'Your profile has been created!', [
-                { text: 'OK', onPress: () => console.log('[OnboardingScreen] Alert dismissed') }
-            ]);
+            Alert.alert('Success', 'Your profile has been created!');
             // Navigation will happen automatically because of RootNavigator's role check
         } catch (error) {
             console.error('Onboarding error:', error);
@@ -455,7 +451,6 @@ const OnboardingScreen = ({ navigation }: any) => {
                 </View>
             ) : (
                 <>
-                    {console.log('[OnboardingScreen] Rendering Step:', step)}
                     {step === 1 && renderStep1()}
                     {step === 2 && renderStep2()}
                     {step === 3 && renderStep3()}

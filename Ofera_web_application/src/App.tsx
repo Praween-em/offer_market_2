@@ -728,7 +728,6 @@ function App() {
               <div className="footer-links">
                 <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('privacy') }} className="footer-link">Privacy Policy</a>
                 <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('terms') }} className="footer-link">Terms of Service</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('cookie') }} className="footer-link">Cookie Policy</a>
               </div>
             </div>
 

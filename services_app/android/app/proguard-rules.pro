@@ -26,3 +26,31 @@
   @com.google.android.gms.ads.mediation.customevent.CustomEvent* <fields>;
   @com.google.android.gms.ads.mediation.customevent.CustomEvent* <methods>;
 }
+
+# React Native
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keep class com.facebook.jni.** { *; }
+-dontwarn com.facebook.**
+
+# react-native-vector-icons
+-keep class com.oblador.vectoricons.** { *; }
+
+# Notifee
+-keep class io.invertase.notifee.** { *; }
+-dontwarn io.invertase.notifee.**
+
+# react-native-camera-kit
+-keep class com.wix.RNCameraKit.** { *; }
+
+# Async Storage
+-keep class com.reactnativecommunity.asyncstorage.** { *; }
+
+# Lottie
+-keep class com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**
+
+# Keep JavaScript interface methods
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

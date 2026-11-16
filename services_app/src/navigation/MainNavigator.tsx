@@ -19,6 +19,7 @@ import PrivacySecurityScreen from '../screens/main/PrivacySecurityScreen';
 import SupportScreen from '../screens/main/SupportScreen';
 import CreateTicketScreen from '../screens/main/CreateTicketScreen';
 import TicketDetailsScreen from '../screens/main/TicketDetailsScreen';
+import CategorySelectionScreen from '../screens/main/CategorySelectionScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +44,7 @@ const MainNavigator = () => {
             <Stack.Screen name="Support" component={SupportScreen} />
             <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
             <Stack.Screen name="TicketDetails" component={TicketDetailsScreen} />
+            <Stack.Screen name="CategorySelection" component={CategorySelectionScreen} />
         </Stack.Navigator>
     );
 };

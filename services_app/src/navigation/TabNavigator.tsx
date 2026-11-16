@@ -6,14 +6,22 @@ import FeedScreen from '../screens/main/FeedScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import { COLORS } from '../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
 
-const TabNavigator = () => {
+const TabNavigatorInner = () => {
+    const insets = useSafeAreaInsets();
+    
+    // On Android 15+, insets.bottom will represent the navigation bar height
+    // We adjust the tab bar height and padding to ensure icons are correctly placed
+    const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+    const tabBarHeight = 60 + insets.bottom;
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
-                tabBarIcon: ({ focused, color, size }) => {
+                tabBarIcon: ({ color, size }) => {
                     let iconName: string = 'grid';
 
                     if (route.name === 'Home') {
@@ -32,11 +40,14 @@ const TabNavigator = () => {
                 tabBarInactiveTintColor: COLORS.textSecondary,
                 headerShown: false,
                 tabBarStyle: {
-                    height: 60,
-                    paddingBottom: 10,
-                    paddingTop: 5,
+                    height: tabBarHeight,
+                    paddingBottom: bottomPadding,
+                    paddingTop: 8,
                     borderTopWidth: 1,
                     borderTopColor: COLORS.border,
+                    backgroundColor: COLORS.surface,
+                    // Raise above Android gesture navigation bar
+                    elevation: 8,
                 },
             })}
         >
@@ -46,6 +57,10 @@ const TabNavigator = () => {
             <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
     );
+};
+
+const TabNavigator = () => {
+    return <TabNavigatorInner />;
 };
 
 export default TabNavigator;

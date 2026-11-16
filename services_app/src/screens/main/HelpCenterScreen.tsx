@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -17,8 +18,8 @@ const HelpCenterScreen = ({ navigation }: any) => {
                     <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
 
                     <View style={styles.faqItem}>
-                        <Text style={styles.question}>How does Sahayaq work?</Text>
-                        <Text style={styles.answer}>Sahayaq is an informational platform. Users post service requests, and Service Providers can browse and contact them by unlocking leads.</Text>
+                        <Text style={styles.question}>How does My Sahayaq work?</Text>
+                        <Text style={styles.answer}>My Sahayaq is an informational platform. Users post service requests, and Service Providers can browse and contact them by unlocking leads.</Text>
                     </View>
 
                     <View style={styles.faqItem}>

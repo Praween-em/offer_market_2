@@ -34,7 +34,7 @@ const AboutAppScreen = ({ navigation }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#2D3436" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>About Sahayaq</Text>
+                <Text style={styles.headerTitle}>About My Sahayaq</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -42,7 +42,7 @@ const AboutAppScreen = ({ navigation }: any) => {
                     <View style={styles.logoPlaceholder}>
                         <MaterialCommunityIcons name="hand-heart" size={60} color="#FF4757" />
                     </View>
-                    <Text style={styles.appName}>Sahayaq</Text>
+                    <Text style={styles.appName}>My Sahayaq</Text>
                     <Text style={styles.appTagline}>Connecting Services, Empowring People</Text>
                     <View style={styles.versionBadge}>
                         <Text style={styles.versionText}>Version 1.0.0 (Production)</Text>
@@ -52,12 +52,12 @@ const AboutAppScreen = ({ navigation }: any) => {
                 <View style={styles.contentCard}>
                     <Text style={styles.cardTitle}>Our Mission</Text>
                     <Text style={styles.cardText}>
-                        Sahayaq is built with a vision to organize India's fragmented service sector. We aim to provide every consumer with easy access to verified professionals, while helping service providers grow their businesses through technology.
+                        My Sahayaq is built with a vision to organize India's fragmented service sector. We aim to provide every consumer with easy access to verified professionals, while helping service providers grow their businesses through technology.
                     </Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Why Sahayaq?</Text>
+                    <Text style={styles.sectionTitle}>Why My Sahayaq?</Text>
                     <FeatureItem
                         icon="shield-check-outline"
                         title="Verified Professionals"

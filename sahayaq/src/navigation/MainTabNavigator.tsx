@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -31,6 +32,8 @@ const FloatingActionButton = () => {
 };
 
 const MainTabNavigator = () => {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tab.Navigator
             screenOptions={{
@@ -38,8 +41,8 @@ const MainTabNavigator = () => {
                 tabBarActiveTintColor: '#078c34',
                 tabBarInactiveTintColor: '#B2BEC3',
                 tabBarStyle: {
-                    height: 60,
-                    paddingBottom: 8,
+                    height: 60 + insets.bottom,
+                    paddingBottom: 8 + insets.bottom,
                     paddingTop: 8,
                     borderTopWidth: 1,
                     borderTopColor: '#F1F2F6',

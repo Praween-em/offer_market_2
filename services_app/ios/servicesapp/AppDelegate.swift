@@ -24,7 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "sahayaq_providers",
+      withModuleName: "servicesapp",
       in: window,
       launchOptions: launchOptions
     )

@@ -25,6 +25,8 @@ import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { COLORS } from './src/utils/theme';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 
 import { NotificationProvider } from './src/context/NotificationContext';
 
@@ -94,15 +96,17 @@ const App = () => {
   }, []);
 
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <LanguageProvider>
-          <LocationProvider>
-            <AppNavigator />
-          </LocationProvider>
-        </LanguageProvider>
-      </NotificationProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <LanguageProvider>
+            <LocationProvider>
+              <AppNavigator />
+            </LocationProvider>
+          </LanguageProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 };
 

@@ -1,10 +1,9 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ScrollView,
     TextInput,
@@ -13,6 +12,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import api from '../../services/api';

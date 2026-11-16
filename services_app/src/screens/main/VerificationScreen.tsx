@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ScrollView,
     Alert,
@@ -14,6 +13,7 @@ import {
     Linking,
     Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import DocumentPicker from 'react-native-document-picker';
@@ -29,7 +29,6 @@ const VerificationScreen = ({ navigation, route }: any) => {
     const isBusiness =
         user?.provider?.provider_type === 'business' ||
         route?.params?.providerType === 'business';
-    console.log(user?.provider?.provider_type);
     const [loading, setLoading] = useState(false);
 
     // Form State
@@ -138,7 +137,6 @@ const VerificationScreen = ({ navigation, route }: any) => {
             });
 
             const responseData = await response.json();
-            console.log('[Verification] Response:', responseData);
 
             if (!response.ok) {
                 throw new Error(responseData.message || 'Verification failed');
@@ -330,7 +328,7 @@ const VerificationScreen = ({ navigation, route }: any) => {
                                 {acceptedTerms && <Icon name="check" size={14} color={COLORS.white} />}
                             </View>
                             <Text style={styles.checkboxLabel}>
-                                I have read, understood, and accept the Sahayaq Legal Terms and Liability Disclaimers.
+                                I have read, understood, and accept the My Sahayaq Legal Terms and Liability Disclaimers.
                             </Text>
                         </TouchableOpacity>
                     </View>

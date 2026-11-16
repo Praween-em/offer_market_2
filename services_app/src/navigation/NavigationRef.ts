@@ -6,6 +6,5 @@ export function navigate(name: string, params?: any) {
     if (navigationRef.isReady()) {
         (navigationRef as any).navigate(name, params);
     } else {
-        console.log('[NavigationRef] Not ready yet, deferring navigation...');
     }
 }

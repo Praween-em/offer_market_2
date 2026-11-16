@@ -33,11 +33,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response) {
-            console.log('API Error:', error.response.status, error.response.data);
-        } else {
-            console.log('API Network Error:', error.message);
-        }
         return Promise.reject(error);
     }
 );

@@ -5,10 +5,10 @@ import {
     TouchableOpacity,
     View,
     Text,
-    SafeAreaView,
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, CameraType } from 'react-native-camera-kit';
 import Icon from 'react-native-vector-icons/Feather';
 import { COLORS } from '../theme/theme';

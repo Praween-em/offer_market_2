@@ -5,8 +5,8 @@ import {
     TouchableOpacity,
     View,
     Text,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, CameraType } from 'react-native-camera-kit';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -18,15 +18,9 @@ interface QRScannerModalProps {
 
 const QRScannerModal: React.FC<QRScannerModalProps> = ({ visible, onClose, onReadCode }) => {
     const [torch, setTorch] = React.useState<'on' | 'off'>('off');
-
-    React.useEffect(() => {
-        if (visible) {
-            console.log('[QRScannerModal] Modal Mounted and Visible');
-        }
-    }, [visible]);
+    const insets = useSafeAreaInsets();
 
     const handleClose = () => {
-        console.log('[QRScannerModal] Closing Modal');
         onClose();
     };
 
@@ -53,7 +47,6 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({ visible, onClose, onRea
                         scanBarcode={true}
                         onReadCode={(event: any) => {
                             const code = event.nativeEvent.codeStringValue;
-                            console.log('[QRScannerModal] Scanned:', code);
                             if (code) {
                                 onReadCode(code);
                             }
@@ -70,7 +63,7 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({ visible, onClose, onRea
                     />
                 </View>
 
-                <View style={styles.footer}>
+                <View style={[styles.footer, { bottom: 40 + insets.bottom }]}>
                     <Text style={styles.footerText}>
                         Position the QR code within the frame to scan
                     </Text>

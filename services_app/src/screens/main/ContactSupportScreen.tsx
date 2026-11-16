@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
 const ContactSupportScreen = ({ navigation }: any) => {
-    const handleEmail = () => Linking.openURL('mailto:support@sahayaq.com');
+    const handleEmail = () => Linking.openURL('mailto:mysahayaq@gmail.com');
     const handleCall = () => Linking.openURL('tel:+919876543210');
     const handleWhatsApp = () => Linking.openURL('whatsapp://send?phone=+919876543210');
 
@@ -22,7 +23,7 @@ const ContactSupportScreen = ({ navigation }: any) => {
                     <Icon name="headphones" size={48} color={COLORS.primary} />
                     <Text style={styles.heroTitle}>How can we help you?</Text>
                     <Text style={styles.heroSubtext}>
-                        Our Sahayaq support team is available 24/7 to assist you with any questions or issues.
+                        Our My Sahayaq support team is available 24/7 to assist you with any questions or issues.
                     </Text>
                 </View>
 
@@ -55,7 +56,7 @@ const ContactSupportScreen = ({ navigation }: any) => {
                         </View>
                         <View style={styles.cardTextContent}>
                             <Text style={styles.cardTitle}>Email Support</Text>
-                            <Text style={styles.cardSubtext}>support@sahayaq.com</Text>
+                            <Text style={styles.cardSubtext}>mysahayaq@gmail.com</Text>
                         </View>
                         <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
                     </TouchableOpacity>

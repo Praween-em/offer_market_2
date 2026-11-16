@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, Alert, useWindowDimensions, Platform, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, Alert, useWindowDimensions, Platform, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import api from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import AdGateModal from '../../components/AdGateModal';
 import ConsentModal from '../../components/ConsentModal';
 import ReportModal from '../../components/ReportModal';
 const { width } = Dimensions.get('window');
@@ -17,7 +17,6 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const [unlockStatus, setUnlockStatus] = useState<any>(null);
-    const [showAdGate, setShowAdGate] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [showConsentModal, setShowConsentModal] = useState(false);
     const [isUnlocking, setIsUnlocking] = useState(false);
@@ -64,55 +63,16 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
         }
     };
 
-    const handleContactPress = async (type: 'call' | 'whatsapp') => {
-        if (unlockStatus?.hasUnlocked) {
-            if (request?.users?.phone) {
-                if (type === 'call') {
-                    Linking.openURL(`tel:${request.users.phone}`);
-                } else {
-                    const message = `Hello, I'm responding to your request for "${request.title}" on Ofera.`;
-                    Linking.openURL(`whatsapp://send?phone=${request.users.phone}&text=${encodeURIComponent(message)}`);
-                }
-                trackAction(type);
-            } else {
-                // If unlocked but phone missing, try to refresh details once
-                setLoading(true);
-                try {
-                    await fetchDetails();
-                    if (request?.users?.phone) {
-                        // Retry the action after refresh
-                        handleContactPress(type);
-                    } else {
-                        Alert.alert('Error', 'Contact details unlocked but not available. Please contact support.');
-                    }
-                } catch (e) {
-                    Alert.alert('Error', 'Failed to refresh contact details.');
-                } finally {
-                    setLoading(false);
-                }
-            }
-            return;
-        }
-
-        if (!unlockStatus?.canUnlock) {
-            Alert.alert('Limit Reached', 'This lead has already been unlocked by 3 providers.');
-            return;
-        }
-
-        setShowAdGate(true);
-    };
-
-    const handleAdComplete = async (token: string) => {
-        setShowAdGate(false);
+    const doRevealContact = async () => {
         setIsUnlocking(true);
         try {
+            const token = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const response = await api.post('/services/reveal-contact', {
                 leadId: requestId,
                 adCompletionToken: token
             });
 
             Alert.alert('Success', 'Contact details revealed!');
-            // Update local request data with revealed phone
             setRequest((prev: any) => ({
                 ...prev,
                 users: {
@@ -131,6 +91,44 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
         } finally {
             setIsUnlocking(false);
         }
+    };
+
+    const handleContactPress = async (type: 'call' | 'whatsapp') => {
+        if (unlockStatus?.hasUnlocked) {
+            if (request?.users?.phone) {
+                if (type === 'call') {
+                    Linking.openURL(`tel:${request.users.phone}`);
+                } else {
+                    const message = `Hello, I'm responding to your request for "${request.title}" on Ofera.`;
+                    Linking.openURL(`whatsapp://send?phone=${request.users.phone}&text=${encodeURIComponent(message)}`);
+                }
+                trackAction(type);
+            } else {
+                // If unlocked but phone missing, try to refresh details once
+                setLoading(true);
+                try {
+                    await fetchDetails();
+                    if (request?.users?.phone) {
+                        handleContactPress(type);
+                    } else {
+                        Alert.alert('Error', 'Contact details unlocked but not available. Please contact support.');
+                    }
+                } catch (e) {
+                    Alert.alert('Error', 'Failed to refresh contact details.');
+                } finally {
+                    setLoading(false);
+                }
+            }
+            return;
+        }
+
+        if (!unlockStatus?.canUnlock) {
+            Alert.alert('Limit Reached', 'This lead has already been unlocked by 3 providers.');
+            return;
+        }
+
+        // Directly unlock without showing any ad
+        doRevealContact();
     };
 
     const handleReportSubmit = async (reason: string, notes: string) => {
@@ -256,8 +254,6 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                         )}
                     </View>
 
-
-
                     <View style={styles.section}>
                         <Text style={styles.sectionLabel}>Description</Text>
                         <Text style={styles.description}>{request?.description || 'No description provided.'}</Text>
@@ -303,7 +299,7 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                         ) : (
                             <>
                                 <Icon name="lock" size={20} color={COLORS.white} />
-                                <Text style={styles.actionButtonText}>Unlock Contact (Ad-Gate)</Text>
+                                <Text style={styles.actionButtonText}>Unlock Contact</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -321,20 +317,13 @@ const ServiceRequestDetailsScreen = ({ route, navigation }: any) => {
                 )}
             </View>
 
-            <AdGateModal
-                visible={showAdGate}
-                leadId={requestId}
-                onClose={() => setShowAdGate(false)}
-                onAdComplete={handleAdComplete}
-            />
-
             <ConsentModal
                 visible={showConsentModal}
                 type="LEAD_REVEAL"
                 userId={user?.id}
                 onAccept={() => {
                     setShowConsentModal(false);
-                    setShowAdGate(true);
+                    doRevealContact();
                 }}
                 onCancel={() => setShowConsentModal(false)}
             />
@@ -557,7 +546,6 @@ const styles = StyleSheet.create({
         color: COLORS.secondary,
         letterSpacing: 0.5,
     },
-
     section: {
         marginBottom: SPACING.lg,
     },

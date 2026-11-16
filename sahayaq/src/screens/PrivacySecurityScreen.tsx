@@ -43,7 +43,7 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                     <MaterialCommunityIcons name="shield-check" size={48} color="#FF4757" />
                     <Text style={styles.introTitle}>Your Data, Protected</Text>
                     <Text style={styles.introText}>
-                        Sahayaq is committed to transparency and compliance with India's Digital Personal Data Protection (DPDP) Act 2023.
+                        My Sahayaq is committed to transparency and compliance with India's Digital Personal Data Protection (DPDP) Act 2023.
                     </Text>
                 </View>
 
@@ -68,13 +68,13 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                 <Section
                     icon="google-ads"
                     title="Ad Services & Third Parties"
-                    content="Sahayaq uses third-party advertising services (including Google Ad Services) and 'Ad-Gates' to keep the platform free for users. These services may collect anonymous identifiers to show relevant ads. We do not share your direct contact details with advertisers."
+                    content="My Sahayaq uses third-party advertising services (including Google Ad Services) to keep the platform free for users. These services may collect anonymous identifiers to show relevant ads. We do not share your direct contact details with advertisers."
                 />
 
                 <Section
                     icon="alert-octagon-outline"
                     title="Liability Disclaimers"
-                    content="While we verify service providers, Sahayaq is a facilitator platform. We are not responsible for off-platform interactions, quality of service provided by third-party workers, or data shared by you directly with a provider outside the app's secure reveal system."
+                    content="While we verify service providers, My Sahayaq is a facilitator platform. We are not responsible for off-platform interactions, quality of service provided by third-party workers, or data shared by you directly with a provider outside the app's secure reveal system."
                 />
 
                 <Section
@@ -85,7 +85,7 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
 
                 <TouchableOpacity
                     style={styles.fullPolicyBtn}
-                    onPress={() => Linking.openURL('https://sahayaq.com/privacy')}
+                    onPress={() => Linking.openURL('https://mysahayaq.in/privacy')}
                 >
                     <Text style={styles.fullPolicyText}>Read Full Privacy Policy</Text>
                     <MaterialCommunityIcons name="open-in-new" size={16} color="#FF4757" />

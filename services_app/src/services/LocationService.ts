@@ -24,7 +24,7 @@ class LocationServiceClass {
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 {
                     title: 'Location Permission',
-                    message: 'Sahayaq needs your location to find nearby jobs and service requests for you.',
+                    message: 'My Sahayaq needs your location to find nearby jobs and service requests for you.',
                     buttonNeutral: 'Ask Me Later',
                     buttonNegative: 'Cancel',
                     buttonPositive: 'OK',
@@ -148,7 +148,7 @@ class LocationServiceClass {
                 const response = await fetch(
                     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
                     {
-                        headers: { 'User-Agent': 'Sahayaq/1.0 (contact@sahayaq.com)' }, // Compliant UA
+                        headers: { 'User-Agent': 'MySahayaq/1.0 (mysahayaq@gmail.com)' }, // Compliant UA
                         signal: controller.signal
                     }
                 );
@@ -185,7 +185,6 @@ class LocationServiceClass {
 
         // Fallback to BigDataCloud if Nominatim fails
         try {
-            console.log('Nominatim failed, trying BigDataCloud...');
             const response = await fetch(
                 `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
             );

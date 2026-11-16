@@ -90,7 +90,7 @@ const ConsentModal = ({ visible, type, userId, onAccept, onCancel }: ConsentModa
                             />
                         </View>
                         <Text style={styles.title}>
-                            {type === 'ONBOARDING' ? 'Welcome to Sahayaq' : 'Connect with User'}
+                            {type === 'ONBOARDING' ? 'Welcome to My Sahayaq' : 'Connect with User'}
                         </Text>
                         <Text style={styles.subtitle}>
                             {type === 'ONBOARDING' ? 'A quick privacy update before you start.' : 'Please review this quick privacy update.'}

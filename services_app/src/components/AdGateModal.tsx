@@ -93,7 +93,6 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
         const unsubscribeEarned = newInstance.addAdEventListener(
             RewardedAdEventType.EARNED_REWARD,
             reward => {
-                console.log('User earned reward of ', reward);
                 setAdWatched(true);
             },
         );

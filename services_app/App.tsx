@@ -8,6 +8,7 @@ import mobileAds from 'react-native-google-mobile-ads';
 import { RequestAlertProvider, useRequestAlert } from './src/context/RequestAlertContext';
 import IncomingRequestAlert from './src/components/IncomingRequestAlert';
 import { NotificationProvider } from './src/context/NotificationContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const AppContent = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -17,8 +18,17 @@ const AppContent = () => {
   useEffect(() => {
     // Initialize Notifications & AdMob
     const setupApp = async () => {
-      await mobileAds().initialize();
-      await NotificationService.requestUserPermission();
+      try {
+        await mobileAds().initialize();
+      } catch (e) {
+        console.log('[App] AdMob initialization failed gracefully', e);
+      }
+
+      try {
+        await NotificationService.requestUserPermission();
+      } catch (e) {
+        console.log('[App] Notification permissions failed gracefully', e);
+      }
 
       // Set the handler for new requests (Ring System)
       NotificationService.setAlertHandler((data) => {
@@ -57,9 +67,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <RequestAlertProvider>
-      <AppContent />
-    </RequestAlertProvider>
+    <SafeAreaProvider>
+      <RequestAlertProvider>
+        <AppContent />
+      </RequestAlertProvider>
+    </SafeAreaProvider>
   );
 };
 

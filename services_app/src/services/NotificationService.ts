@@ -16,9 +16,7 @@ class NotificationService {
                         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
                     );
                     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                        console.log('[NotificationService] Notification permission granted');
                     } else {
-                        console.log('[NotificationService] Notification permission denied');
                     }
                 } catch (error) {
                     console.error('[NotificationService] Permission request error:', error);
@@ -36,7 +34,6 @@ class NotificationService {
                 authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
             if (enabled) {
-                console.log('[NotificationService] Authorization status:', authStatus);
                 await this.getToken();
             }
         } catch (error) {
@@ -49,11 +46,9 @@ class NotificationService {
         try {
             const fcmToken = await messaging().getToken();
             if (fcmToken) {
-                console.log('[NotificationService] FCM Token:', fcmToken);
                 await this.saveTokenToBackend(fcmToken);
             }
         } catch (error) {
-            console.log('[NotificationService] Error getting FCM token:', error);
         }
     }
 
@@ -70,10 +65,8 @@ class NotificationService {
                     appType: 'PROVIDER',
                 });
                 await AsyncStorage.setItem('fcmToken', fcmToken);
-                console.log('[NotificationService] Token registered with backend');
             }
         } catch (error) {
-            console.log('[NotificationService] Error saving token to backend:', error);
         }
     }
 
@@ -130,13 +123,11 @@ class NotificationService {
     async setupNotificationListeners() {
         // Foreground
         const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
-            console.log('[NotificationService] A new FCM message arrived!', JSON.stringify(remoteMessage));
 
             const { data } = remoteMessage;
 
             // Filter out notifications meant for the USER app
             if (data?.type === 'LEAD_UNLOCKED') {
-                console.log('[NotificationService] Filtering out LEAD_UNLOCKED notification in Provider app');
                 return;
             }
 
@@ -170,11 +161,9 @@ class NotificationService {
 
         // Background / Quit opening logic
         messaging().onNotificationOpenedApp((remoteMessage: any) => {
-            console.log('[NotificationService] Notification caused app to open from background state:', remoteMessage.data);
             const { data } = remoteMessage;
 
             if (data?.type === 'LEAD_UNLOCKED') {
-                console.log('[NotificationService] Ignoring LEAD_UNLOCKED background notification in Provider app');
                 return;
             }
 
@@ -185,11 +174,9 @@ class NotificationService {
 
         messaging().getInitialNotification().then((remoteMessage: any) => {
             if (remoteMessage) {
-                console.log('[NotificationService] Notification caused app to open from quit state:', remoteMessage.data);
                 const { data } = remoteMessage;
 
                 if (data?.type === 'LEAD_UNLOCKED') {
-                    console.log('[NotificationService] Ignoring LEAD_UNLOCKED quit notification in Provider app');
                     return;
                 }
 
@@ -203,7 +190,6 @@ class NotificationService {
         });
 
         messaging().onTokenRefresh((token: string) => {
-            console.log('[NotificationService] FCM Token refreshed:', token);
             this.saveTokenToBackend(token);
         });
 

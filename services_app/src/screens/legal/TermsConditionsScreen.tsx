@@ -39,7 +39,7 @@ const TermsConditionsScreen = ({ navigation }: any) => {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.infoBox}>
-                    <Text style={styles.infoText}>By using the Sahayaq app, you agree to these terms. Please read them carefully to understand your rights and responsibilities.</Text>
+                    <Text style={styles.infoText}>By using the My Sahayaq app, you agree to these terms. Please read them carefully to understand your rights and responsibilities.</Text>
                 </View>
 
                 <TermSection
@@ -54,7 +54,7 @@ const TermsConditionsScreen = ({ navigation }: any) => {
                 <TermSection
                     title="2. Service Requests"
                     points={[
-                        "Sahayaq acts as a marketplace to connect customers with providers.",
+                        "My Sahayaq acts as a marketplace to connect customers with providers.",
                         "We do not guarantee the completion of any request posted on the platform.",
                         "Users are responsible for verifying the provider's work before making payments off-platform."
                     ]}
@@ -63,9 +63,9 @@ const TermsConditionsScreen = ({ navigation }: any) => {
                 <TermSection
                     title="3. Platform Fees & Payments"
                     points={[
-                        "Sahayaq may charge a small fee for certain premium features.",
+                        "My Sahayaq may charge a small fee for certain premium features.",
                         "Payments for services are settled directly between the customer and the provider.",
-                        "Sahayaq is not responsible for refund disputes regarding service quality."
+                        "My Sahayaq is not responsible for refund disputes regarding service quality."
                     ]}
                 />
 

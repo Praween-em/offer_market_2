@@ -57,7 +57,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 {
                     title: 'Location Permission',
-                    message: 'Sahayaq needs access to your location to find nearby services.',
+                    message: 'My Sahayaq needs access to your location to find nearby services.',
                     buttonNeutral: 'Ask Me Later',
                     buttonNegative: 'Cancel',
                     buttonPositive: 'OK',
@@ -137,7 +137,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         try {
             const response = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
-                { headers: { 'User-Agent': 'Sahayaq-App' } }
+                { headers: { 'User-Agent': 'MySahayaq-App' } }
             );
             const data = await response.json();
             let addressText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;

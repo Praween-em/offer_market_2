@@ -18,18 +18,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const refreshUnreadCount = useCallback(async () => {
         if (!isAuthenticated || !token) {
-            console.log('[NotificationContext] Not authenticated, skipping refresh');
             return;
         }
-        console.log('[NotificationContext] Refreshing unread count...');
         const data = await NotificationService.getNotifications();
-        console.log('[NotificationContext] Fetched', data?.length || 0, 'notifications');
-        if (data && data.length > 0) {
-            console.log('[NotificationContext] First notification is_read:', data[0].is_read);
-        }
         setNotifications(data || []);
         const unread = (data || []).filter((n: any) => !n.is_read).length;
-        console.log('[NotificationContext] New unread count:', unread);
         setUnreadCount(unread);
     }, [isAuthenticated, token]);
 

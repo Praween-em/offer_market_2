@@ -20,7 +20,6 @@ import VerificationBadge from '../components/VerificationBadge';
 import { useLanguage } from '../context/LanguageContext';
 import { COLORS } from '../utils/theme';
 import ReportModal from '../components/ReportModal';
-import AdGateModal from '../components/AdGateModal';
 import AddReviewModal from '../components/AddReviewModal';
 
 const { width } = Dimensions.get('window');
@@ -34,9 +33,8 @@ const ServiceProviderDetailsScreen = () => {
     const [provider, setProvider] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [showAdGate, setShowAdGate] = useState(false);
-    const [pendingAction, setPendingAction] = useState<'call' | 'whatsapp' | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
     const [reviews, setReviews] = useState<any[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [showReviewModal, setShowReviewModal] = useState(false);
@@ -69,17 +67,6 @@ const ServiceProviderDetailsScreen = () => {
         }
     };
 
-    const handleCall = () => {
-        if (!provider?.isUnlocked) {
-            setPendingAction('call');
-            setShowAdGate(true);
-            return;
-        }
-        if (provider?.phone_number) {
-            Linking.openURL(`tel:${provider.phone_number}`);
-        }
-    };
-
     const formatWhatsAppNumber = (number: string): string => {
         // Strip spaces, dashes, and any existing + prefix
         let cleaned = number.replace(/[\s\-()]/g, '').replace(/^\+/, '');
@@ -91,44 +78,41 @@ const ServiceProviderDetailsScreen = () => {
         return cleaned;
     };
 
-    const handleWhatsApp = () => {
-        if (!provider?.isUnlocked) {
-            setPendingAction('whatsapp');
-            setShowAdGate(true);
-            return;
-        }
-        if (provider?.whatsapp_number) {
-            const phone = formatWhatsAppNumber(provider.whatsapp_number);
-            Linking.openURL(`whatsapp://send?phone=${phone}&text=${t('whatsappMessage')}`);
+    const unlockAndGetProvider = async () => {
+        try {
+            const adToken = `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            await api.post(`/services/providers/${providerId}/unlock`, { adToken });
+            const updatedResponse = await api.get(`/services/providers/${providerId}`);
+            const updatedProvider = updatedResponse.data;
+            setProvider(updatedProvider);
+            return updatedProvider;
+        } catch (error) {
+            console.error('Unlock error:', error);
+            Alert.alert('Error', 'Failed to get contact details. Please try again.');
+            return null;
         }
     };
 
-    const handleAdComplete = async (token: string) => {
-        try {
-            setShowAdGate(false);
-            const response = await api.post(`/services/providers/${providerId}/unlock`, {
-                adToken: token
-            });
+    const handleCall = async () => {
+        let currentProvider = provider;
+        if (!currentProvider?.isUnlocked) {
+            currentProvider = await unlockAndGetProvider();
+            if (!currentProvider) return;
+        }
+        if (currentProvider?.phone_number) {
+            Linking.openURL(`tel:${currentProvider.phone_number}`);
+        }
+    };
 
-            // Re-fetch provider details to get the unlocked phone number
-            const updatedResponse = await api.get(`/services/providers/${providerId}`);
-            const updatedProvider = updatedResponse.data;
-
-            // Update the provider state
-            setProvider(updatedProvider);
-
-            // Execute the pending action with the actual unlocked phone number
-            if (pendingAction === 'call' && updatedProvider?.phone_number) {
-                Linking.openURL(`tel:${updatedProvider.phone_number}`);
-            } else if (pendingAction === 'whatsapp' && updatedProvider?.whatsapp_number) {
-                const phone = formatWhatsAppNumber(updatedProvider.whatsapp_number);
-                Linking.openURL(`whatsapp://send?phone=${phone}&text=${t('whatsappMessage')}`);
-            }
-
-            setPendingAction(null);
-        } catch (error) {
-            console.error('Unlock error:', error);
-            Alert.alert('Error', 'Failed to unlock contact details. Please try again.');
+    const handleWhatsApp = async () => {
+        let currentProvider = provider;
+        if (!currentProvider?.isUnlocked) {
+            currentProvider = await unlockAndGetProvider();
+            if (!currentProvider) return;
+        }
+        if (currentProvider?.whatsapp_number) {
+            const phone = formatWhatsAppNumber(currentProvider.whatsapp_number);
+            Linking.openURL(`whatsapp://send?phone=${phone}&text=${t('whatsappMessage')}`);
         }
     };
 
@@ -417,11 +401,7 @@ const ServiceProviderDetailsScreen = () => {
                 onSubmit={handleReport}
             />
 
-            <AdGateModal
-                visible={showAdGate}
-                onClose={() => setShowAdGate(false)}
-                onAdComplete={handleAdComplete}
-            />
+
 
             <AddReviewModal
                 visible={showReviewModal}

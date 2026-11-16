@@ -23,7 +23,7 @@ export const AD_IDS = {
         : TestIds.BANNER,
 
     INTERSTITIAL: IS_PRODUCTION
-        ? 'ca-app-pub-5362340568713961/9876543210' // PLACEHOLDER
+        ? 'ca-app-pub-5362340568713961/1896281697' // PLACEHOLDER
         : TestIds.INTERSTITIAL,
 
     REWARDED: IS_PRODUCTION

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -108,6 +109,20 @@ const ProfileScreen = ({ navigation }: any) => {
                     <Text style={styles.sectionTitle}>Account Settings</Text>
                     <TouchableOpacity
                         style={styles.menuItem}
+                        onPress={() => navigation.navigate('CategorySelection')}
+                    >
+                        <View style={[styles.menuIcon, { backgroundColor: '#F0FDF4' }]}>
+                            <Icon name="layers" size={20} color="#16A34A" />
+                        </View>
+                        <View style={styles.menuTextContainer}>
+                            <Text style={styles.menuText}>My Service Categories</Text>
+                            <Text style={styles.menuSubtext}>Manage the categories you serve</Text>
+                        </View>
+                        <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.menuItem}
                         onPress={() => navigation.navigate('PrivacySecurity')}
                     >
                         <View style={[styles.menuIcon, { backgroundColor: '#F0F9FF' }]}>
@@ -192,7 +207,7 @@ const ProfileScreen = ({ navigation }: any) => {
                         <View style={[styles.menuIcon, { backgroundColor: '#FFF1F2' }]}>
                             <Icon name="info" size={20} color="#E11D48" />
                         </View>
-                        <Text style={styles.menuText}>About Sahayaq</Text>
+                        <Text style={styles.menuText}>About My Sahayaq</Text>
                         <Icon name="chevron-right" size={20} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                 </View>

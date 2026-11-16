@@ -21,12 +21,10 @@ export const RequestAlertProvider = ({ children }: { children: ReactNode }) => {
     const [activeRequest, setActiveRequest] = useState<RequestData | null>(null);
 
     const showRequest = (data: RequestData) => {
-        console.log('[RequestAlertContext] Showing alert for request:', data.id);
         setActiveRequest(data);
     };
 
     const dismissRequest = () => {
-        console.log('[RequestAlertContext] Dismissing alert');
         setActiveRequest(null);
     };
 

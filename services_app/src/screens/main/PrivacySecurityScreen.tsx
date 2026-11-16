@@ -7,11 +7,11 @@ import {
     TouchableOpacity,
     StatusBar,
     Linking,
-    SafeAreaView,
     Alert,
     ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -75,7 +75,7 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                     <MaterialCommunityIcons name="shield-check" size={48} color={COLORS.primary} />
                     <Text style={styles.introTitle}>Provider Data Shield</Text>
                     <Text style={styles.introText}>
-                        Sahayaq is committed to transparency and compliance with India's Digital Personal Data Protection (DPDP) Act 2023 for our provider community.
+                        My Sahayaq is committed to transparency and compliance with India's Digital Personal Data Protection (DPDP) Act 2023 for our provider community.
                     </Text>
                 </View>
 
@@ -88,7 +88,7 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                 <Section
                     icon="account-key"
                     title="Your Data Principal Rights"
-                    content="Under Indian DPDP Act, you have the right to: 1) Access a summary of your data. 2) Correct or update your professional credentials. 3) Request erasure of your data when your business relationship with Sahayaq ends."
+                    content="Under Indian DPDP Act, you have the right to: 1) Access a summary of your data. 2) Correct or update your professional credentials. 3) Request erasure of your data when your business relationship with My Sahayaq ends."
                 />
 
                 <Section
@@ -112,7 +112,7 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
                 <Section
                     icon="alert-octagon-outline"
                     title="Liability Disclaimers"
-                    content="Sahayaq is a matchmaking platform. While we conduct basic verification, we are not responsible for off-platform disputes, quality of service, or data you share directly with customers outside our secure reveal system."
+                    content="My Sahayaq is a matchmaking platform. While we conduct basic verification, we are not responsible for off-platform disputes, quality of service, or data you share directly with customers outside our secure reveal system."
                 />
 
                 <Section
@@ -142,13 +142,13 @@ const PrivacySecurityScreen = ({ navigation }: any) => {
 
                 <TouchableOpacity
                     style={styles.fullPolicyBtn}
-                    onPress={() => Linking.openURL('https://sahayaq.com/privacy')}
+                    onPress={() => Linking.openURL('https://mysahayaq.in/privacy')}
                 >
                     <Text style={styles.fullPolicyText}>Read Full Privacy Policy</Text>
                     <MaterialCommunityIcons name="open-in-new" size={16} color={COLORS.primary} />
                 </TouchableOpacity>
 
-                <Text style={styles.footerNote}>Last Updated: February 2026 • DPDP Compliant</Text>
+                <Text style={styles.footerNote}>Last Updated: February 2026 "¢ DPDP Compliant</Text>
             </ScrollView>
         </SafeAreaView>
     );

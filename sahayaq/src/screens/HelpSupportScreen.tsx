@@ -65,9 +65,9 @@ const HelpSupportScreen = ({ navigation }: any) => {
                     <ContactItem
                         icon="email-outline"
                         title="Email Us"
-                        subtitle="help.rideandhra@gmail.com"
+                        subtitle="mysahayaq@gmail.com"
                         color="#FF4757"
-                        onPress={() => Linking.openURL('mailto:help.rideandhra@gmail.com')}
+                        onPress={() => Linking.openURL('mailto:mysahayaq@gmail.com')}
                     />
                     <ContactItem
                         icon="phone-outline"

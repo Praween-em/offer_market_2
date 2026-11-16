@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Initialize MSG91 Widget
         try {
             OTPWidget.initializeWidget(WIDGET_ID, tokenAuth.authToken);
-            console.log('MSG91 Widget Initialized');
         } catch (err) {
             console.error('Failed to init MSG91 widget', err);
         }
@@ -59,12 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const requestOtp = async (phone: string) => {
         try {
             const cleanPhone = phone.length === 12 && phone.startsWith('91') ? phone.substring(2) : phone;
-            console.log('Requesting OTP via Mobile SDK for:', cleanPhone);
-
             const data = { identifier: `91${cleanPhone}` };
             const response = await OTPWidget.sendOTP(data);
-            console.log('MSG91 SDK Response:', response);
-
             if (response && response.message) {
                 setReqId(response.message);
             }
@@ -86,17 +81,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             const widgetResponse = await OTPWidget.verifyOTP(data);
-            console.log(`[AuthContext] Widget Verify Response for ${cleanPhone}:`, JSON.stringify(widgetResponse));
-
             const widgetToken = widgetResponse.token || widgetResponse.access_token || widgetResponse.accessToken || (widgetResponse.type === 'success' && widgetResponse.message.length > 20 ? widgetResponse.message : null);
-            console.log(`[AuthContext] Resolved Widget Token: ${widgetToken ? 'YES (Length: ' + widgetToken.length + ')' : 'NO'}`);
 
             let response;
             if (widgetToken && widgetToken.length > 20) {
-                console.log('[AuthContext] Calling backend with Widget Token');
                 response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, token: widgetToken });
             } else {
-                console.log('[AuthContext] Calling backend with OTP');
                 response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, otp });
             }
 
@@ -113,7 +103,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             type: consentNotice.type,
                             version: consentNotice.version
                         });
-                        console.log('Onboarding consent recorded successfully for provider:', userData.id);
                     } catch (consentErr) {
                         console.error('Failed to record provider consent after login:', consentErr);
                     }

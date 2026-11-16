@@ -34,7 +34,7 @@ const PrivacyPolicyScreen = ({ navigation }: any) => {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.infoBox}>
-                    <Text style={styles.infoText}>Your privacy is important to us. This policy explains how Sahayaq collects, uses, and protects your personal data in compliance with India's DPDP Act 2023.</Text>
+                    <Text style={styles.infoText}>Your privacy is important to us. This policy explains how My Sahayaq collects, uses, and protects your personal data in compliance with India's DPDP Act 2023.</Text>
                 </View>
 
                 <Section

@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -13,6 +12,7 @@ import {
     Image,
     Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import Icon from 'react-native-vector-icons/Feather';
@@ -80,20 +80,12 @@ const VerifyOtpScreen = ({ navigation, route }: any) => {
 
         setLoading(true);
         try {
-            console.log(`[VerifyOtpScreen] Verifying OTP for ${phone}`);
             const response = await verifyOtp(phone, otpString, consentNotice);
             const user = response.user;
-
-            console.log(`[VerifyOtpScreen] success, IsServiceProvider: ${user?.is_service_provider}`);
-
-            // The navigation will be handled by RootNavigator if flags changed,
-            // but we might need to nudge it if the user is already a service provider
-            // (though in that case, they wouldn't likely be in the Auth stack anyway)
             if (user && !user.is_service_provider) {
                 navigation.replace('Onboarding');
             }
         } catch (error: any) {
-            console.error('[VerifyOtpScreen] error:', error.message);
             Alert.alert('Verification Failed', 'Invalid OTP. Please try again.');
         } finally {
             setLoading(false);

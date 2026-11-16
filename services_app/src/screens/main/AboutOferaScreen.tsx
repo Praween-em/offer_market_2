@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -10,7 +11,7 @@ const AboutOferaScreen = ({ navigation }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Icon name="arrow-left" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={TYPOGRAPHY.h2}>About Sahayaq</Text>
+                <Text style={TYPOGRAPHY.h2}>About My Sahayaq</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -20,19 +21,19 @@ const AboutOferaScreen = ({ navigation }: any) => {
                         style={styles.logoImage}
                         resizeMode="contain"
                     />
-                    <Text style={styles.appName}>www.Sahayaq.in</Text>
+                    <Text style={styles.appName}>www.mysahayaq.in</Text>
                     <Text style={styles.appTagline}>Empowering Professionals, Simplifying Lives.</Text>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Our Mission</Text>
                     <Text style={styles.bodyText}>
-                        Sahayaq is built with the vision of creating a seamless bridge between high-quality service providers and customers who value talent, reliability, and speed. We believe in empowering local professionals by giving them the digital tools they need to grow their business.
+                        My Sahayaq is built with the vision of creating a seamless bridge between high-quality service providers and customers who value talent, reliability, and speed. We believe in empowering local professionals by giving them the digital tools they need to grow their business.
                     </Text>
                 </View>
 
                 <View style={styles.featuresSection}>
-                    <Text style={styles.sectionTitle}>Why Choose Sahayaq?</Text>
+                    <Text style={styles.sectionTitle}>Why Choose My Sahayaq?</Text>
 
                     <View style={styles.featureItem}>
                         <View style={styles.featureIconBox}>
@@ -66,8 +67,8 @@ const AboutOferaScreen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.madeInTitle}>Crafted with ❤️ in Andhra Pradesh</Text>
-                    <Text style={styles.footerInfo}>© 2025 Ride Andhra.</Text>
+                    <Text style={styles.madeInTitle}>Crafted with â¤ï¸ in Andhra Pradesh</Text>
+                    <Text style={styles.footerInfo}>© 2026 Ride Andhra.</Text>
                     <Text style={styles.footerInfo}>Join the revolution of services .</Text>
                 </View>
             </ScrollView>

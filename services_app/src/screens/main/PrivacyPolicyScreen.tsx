@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -16,14 +17,14 @@ const PrivacyPolicyScreen = ({ navigation }: any) => {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>1. Introduction</Text>
                     <Text style={styles.bodyText}>
-                        Sahayaq ("we", "us", or "our") is committed to protecting the privacy of our Service Providers. This policy outlines how we handle your personal data in compliance with the Digital Personal Data Protection (DPDP) Act 2023 and other applicable laws as of 2026.
+                        My Sahayaq ("we", "us", or "our") is committed to protecting the privacy of our Service Providers. This policy outlines how we handle your personal data in compliance with the Digital Personal Data Protection (DPDP) Act 2023 and other applicable laws as of 2026.
                     </Text>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>2. Data We Collect</Text>
                     <Text style={[styles.bodyText, { marginBottom: SPACING.sm }]}>
-                        To facilitate the Sahayaq ecosystem, we collect:
+                        To facilitate the My Sahayaq ecosystem, we collect:
                     </Text>
                     <View style={styles.bulletItem}>
                         <Icon name="check" size={16} color={COLORS.secondary} />
