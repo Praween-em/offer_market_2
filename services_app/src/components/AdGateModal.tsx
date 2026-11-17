@@ -239,7 +239,7 @@ const AdGateModal: React.FC<AdGateModalProps> = ({
 
                     {/* Footer Notice */}
                     <Text style={styles.footerText}>
-                        For grievances: dpo@ofera.in | Data Protection Board: dpb.gov.in
+                        For grievances: dpo@spotloot.in | Data Protection Board: dpb.gov.in
                     </Text>
                 </View>
             </View>

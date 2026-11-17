@@ -64,7 +64,7 @@ const STATIC_FILTERS = [
 const NOTIFICATIONS = [
   {
     id: 1,
-    title: 'Welcome to Ofera! 👋',
+    title: 'Welcome to Spot Loot! 👋',
     message: 'Discover the best offers and deals from shops near you. Start exploring now!',
     time: 'Just now',
     icon: <Sparkles size={20} color="var(--primary)" />
@@ -105,7 +105,7 @@ function DownloadModal({ onClose }: { onClose: () => void }) {
         <div className="download-modal-icon">
           <Download size={40} />
         </div>
-        <h2 className="download-modal-title">Download Ofera App</h2>
+        <h2 className="download-modal-title">Download Spot Loot App</h2>
         <p className="download-modal-text">
           To claim this offer and explore thousands more, please download our mobile application from the Google Play Store.
         </p>
@@ -421,7 +421,7 @@ function App() {
     <div className="app">
       <header>
         <div className="container header-inner">
-          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); setActivePage('home'); resetCategory(); }}>Ofera</a>
+          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); setActivePage('home'); resetCategory(); }}>Spot Loot</a>
 
           <form className="search-bar" onSubmit={handleSearch}>
             <Search size={18} color="#222" />
@@ -707,7 +707,7 @@ function App() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <h3>Ofera</h3>
+              <h3>Spot Loot</h3>
               <p>Discover the best local offers, deals, and discounts from your favorite shops and brands. Save more, shop smart.</p>
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 {/* Social Icons Placeholder */}
@@ -745,7 +745,7 @@ function App() {
             </div>
           </div>
           <div className="footer-bottom">
-            &copy; {new Date().getFullYear()} Ofera Market. All rights reserved.
+            &copy; {new Date().getFullYear()} Spot Loot. All rights reserved.
           </div>
         </div>
       </footer>

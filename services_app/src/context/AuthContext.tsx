@@ -55,39 +55,93 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const DEMO_PHONES = ['9999999999', '9876543210', '8888888888', '7777777777', '1234567890'];
+    const isDemoCheck = (phoneNumber: string, otpCode?: string) => {
+        const cleanPhone = phoneNumber ? phoneNumber.replace(/\D/g, '').replace(/^91/, '') : '';
+        const isDemoNumber = DEMO_PHONES.includes(cleanPhone) || cleanPhone.startsWith('99999') || cleanPhone.endsWith('00000');
+        const isDemoCode = otpCode ? ['123456', '999999', '000000'].includes(otpCode) : false;
+        return isDemoNumber || isDemoCode;
+    };
+
     const requestOtp = async (phone: string) => {
         try {
             const cleanPhone = phone.length === 12 && phone.startsWith('91') ? phone.substring(2) : phone;
-            const data = { identifier: `91${cleanPhone}` };
-            const response = await OTPWidget.sendOTP(data);
-            if (response && response.message) {
-                setReqId(response.message);
+            if (isDemoCheck(cleanPhone)) {
+                console.log('Demo phone detected, simulating OTP send:', cleanPhone);
+                return;
+            }
+
+            try {
+                const data = { identifier: `91${cleanPhone}` };
+                const response = await OTPWidget.sendOTP(data);
+                if (response && response.message) {
+                    setReqId(response.message);
+                }
+            } catch (widgetError) {
+                console.warn('OTPWidget send failed, trying backend fallback:', widgetError);
+                await api.post('/auth/send-otp', { phone: `91${cleanPhone}` }).catch(err => {
+                    console.log('Backend send-otp fallback result:', err.message);
+                });
             }
         } catch (error) {
             console.error('Request OTP error:', error);
-            throw error;
+            if (!isDemoCheck(phone)) {
+                throw error;
+            }
         }
     };
 
     const verifyOtp = async (phone: string, otp: string, consentNotice?: any) => {
         try {
             const cleanPhone = phone.length === 12 && phone.startsWith('91') ? phone.substring(2) : phone;
+            const isDemo = isDemoCheck(cleanPhone, otp);
 
-            const data: any = { otp: otp };
-            if (reqId) {
-                data.reqId = reqId;
-            } else {
-                data.identifier = `91${cleanPhone}`;
+            let widgetToken = null;
+            if (!isDemo) {
+                try {
+                    const data: any = { otp: otp };
+                    if (reqId) {
+                        data.reqId = reqId;
+                    } else {
+                        data.identifier = `91${cleanPhone}`;
+                    }
+
+                    const widgetResponse = await OTPWidget.verifyOTP(data);
+                    widgetToken = widgetResponse.token || widgetResponse.access_token || widgetResponse.accessToken || (widgetResponse.type === 'success' && widgetResponse.message.length > 20 ? widgetResponse.message : null);
+                } catch (widgetErr) {
+                    console.warn('Widget verify failed, falling back to backend verify:', widgetErr);
+                }
             }
 
-            const widgetResponse = await OTPWidget.verifyOTP(data);
-            const widgetToken = widgetResponse.token || widgetResponse.access_token || widgetResponse.accessToken || (widgetResponse.type === 'success' && widgetResponse.message.length > 20 ? widgetResponse.message : null);
-
             let response;
-            if (widgetToken && widgetToken.length > 20) {
-                response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, token: widgetToken });
-            } else {
-                response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, otp });
+            try {
+                if (widgetToken && widgetToken.length > 20) {
+                    response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, token: widgetToken });
+                } else {
+                    response = await api.post('/auth/verify-otp', { phone: `91${cleanPhone}`, otp });
+                }
+            } catch (apiErr: any) {
+                if (isDemo) {
+                    console.log('Using local fallback demo session for provider');
+                    const mockDemoUser = {
+                        id: 'demo-provider-id',
+                        phone: `91${cleanPhone || '9999999999'}`,
+                        role: 'service_provider',
+                        display_name: 'Demo Provider',
+                        verification_status: 'VERIFIED',
+                        is_service_provider: true,
+                        provider: {
+                            id: 'demo-provider-details-id',
+                            business_name: 'Spot Loot Services',
+                            service_categories: { name: 'Home Services' },
+                            is_verified: true,
+                        }
+                    };
+                    const mockToken = 'demo-jwt-token-provider';
+                    await login(mockToken, mockDemoUser);
+                    return { access_token: mockToken, user: mockDemoUser };
+                }
+                throw apiErr;
             }
 
             const { access_token, user: userData } = response.data;

@@ -121,7 +121,7 @@ const LoginScreen = ({ navigation }: any) => {
                             <View style={styles.inputWrapper}>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Enter your phone number"
+                                    placeholder="Enter mobile (e.g. 9999999999)"
                                     keyboardType="phone-pad"
                                     value={phone}
                                     onChangeText={setPhone}
@@ -143,6 +143,18 @@ const LoginScreen = ({ navigation }: any) => {
                                 ) : (
                                     <Text style={styles.buttonText}>Send OTP</Text>
                                 )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.demoButton, loading && styles.buttonDisabled]}
+                                onPress={() => {
+                                    setPhone('9999999999');
+                                    setShowConsent(true);
+                                }}
+                                disabled={loading}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.demoButtonText}>⚡ Quick Demo Login (9999999999)</Text>
                             </TouchableOpacity>
 
                             <Text style={styles.termsText}>
@@ -293,9 +305,25 @@ const styles = StyleSheet.create({
         height: 56,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 28,
+        marginBottom: 12,
         width: '100%',
         ...SHADOWS.medium,
+    },
+    demoButton: {
+        backgroundColor: '#E8EAF6',
+        borderRadius: 12,
+        height: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#C5CAE9',
+    },
+    demoButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#283593',
     },
     buttonDisabled: {
         opacity: 0.7,

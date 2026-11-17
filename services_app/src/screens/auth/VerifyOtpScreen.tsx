@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -180,6 +180,13 @@ const VerifyOtpScreen = ({ navigation, route }: any) => {
                                 />
                             ))}
                         </View>
+
+                        <TouchableOpacity
+                            style={styles.demoFillBtn}
+                            onPress={() => setOtp(['1', '2', '3', '4', '5', '6'])}
+                        >
+                            <Text style={styles.demoFillText}>⚡ Use Demo OTP: 123456</Text>
+                        </TouchableOpacity>
 
                         <TouchableOpacity
                             style={[styles.verifyButton, loading && styles.buttonDisabled]}
@@ -367,6 +374,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 28,
         ...SHADOWS.medium,
+    },
+    demoFillBtn: {
+        backgroundColor: '#E8EAF6',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        marginBottom: 16,
+        alignSelf: 'center',
+    },
+    demoFillText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#283593',
     },
     buttonDisabled: {
         opacity: 0.7,

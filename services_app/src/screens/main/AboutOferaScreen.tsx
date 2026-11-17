@@ -11,7 +11,7 @@ const AboutOferaScreen = ({ navigation }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Icon name="arrow-left" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={TYPOGRAPHY.h2}>About My Sahayaq</Text>
+                <Text style={TYPOGRAPHY.h2}>About Spot Loot Services</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

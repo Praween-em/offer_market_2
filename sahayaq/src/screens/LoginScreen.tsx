@@ -149,6 +149,18 @@ const LoginScreen = ({ navigation }: any) => {
                                 )}
                             </TouchableOpacity>
 
+                            <TouchableOpacity
+                                style={[styles.demoButton, loading && styles.buttonDisabled]}
+                                onPress={() => {
+                                    setPhone('9999999999');
+                                    setShowConsent(true);
+                                }}
+                                disabled={loading}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.demoButtonText}>⚡ Quick Demo Login (9999999999)</Text>
+                            </TouchableOpacity>
+
                             <Text style={styles.termsText}>
                                 {t('terms_agree') || 'By continuing, you agree to our'}{' '}
                                 <Text
@@ -287,8 +299,24 @@ const styles = StyleSheet.create({
         height: 56,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 28,
+        marginBottom: 12,
         width: '100%',
+    },
+    demoButton: {
+        backgroundColor: '#E8EAF6',
+        borderRadius: 12,
+        height: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#C5CAE9',
+    },
+    demoButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#283593',
     },
     buttonDisabled: {
         opacity: 0.7,

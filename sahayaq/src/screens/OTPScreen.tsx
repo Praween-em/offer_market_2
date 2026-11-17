@@ -134,6 +134,13 @@ const OTPScreen = ({ route, navigation }: any) => {
                             </View>
 
                             <TouchableOpacity
+                                style={styles.demoFillBtn}
+                                onPress={() => setOtp('123456')}
+                            >
+                                <Text style={styles.demoFillText}>⚡ Use Demo OTP: 123456</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
                                 style={[styles.button, (isVerifying || otp.length < 6) && styles.buttonDisabled]}
                                 onPress={handleVerify}
                                 disabled={isVerifying || otp.length < 6}
@@ -281,6 +288,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
         width: '100%',
+    },
+    demoFillBtn: {
+        backgroundColor: '#FFF8E1',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        marginBottom: 16,
+        alignSelf: 'center',
+        borderWidth: 1,
+        borderColor: '#FFE082',
+    },
+    demoFillText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#D84315',
     },
     buttonDisabled: {
         opacity: 0.7,
